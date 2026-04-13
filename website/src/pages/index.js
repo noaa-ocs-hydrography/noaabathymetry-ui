@@ -9,7 +9,7 @@ import styles from './index.module.css';
 const features = [
   {
     title: 'Explore',
-    description: 'Browse on an interactive map',
+    description: 'Browse NBS bathymetric data',
     link: '/docs/features/explore-map',
   },
   {
@@ -19,7 +19,7 @@ const features = [
   },
   {
     title: 'Mosaic',
-    description: 'Merge into unified rasters',
+    description: 'Merge tiles into VRT mosaic',
     link: '/docs/features/build-mosaics',
   },
   {
@@ -64,6 +64,7 @@ function Hero() {
             </Heading>
             <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
           </div>
+          {/* TODO: Add back when demo video is ready. This is a placeholder.
           <div className={styles.heroVideo}>
             <iframe
               src="https://www.youtube.com/embed/Gn75Aa1a8Tc"
@@ -72,7 +73,7 @@ function Hero() {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
-          </div>
+          </div> */}
         </div>
 
       </div>

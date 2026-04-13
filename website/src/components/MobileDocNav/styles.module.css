@@ -1,0 +1,83 @@
+.mobileNav {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 996px) {
+  .mobileNav {
+    display: block;
+  }
+}
+
+.mobileNavToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: var(--ifm-color-emphasis-100);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  color: var(--ifm-font-color-base);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.mobileNavToggle:hover {
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+.chevron {
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.mobileNavDropdown {
+  margin-top: 0.35rem;
+  padding: 0.35rem 0;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.categoryLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ifm-color-emphasis-500);
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+.navLink {
+  display: block;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.navLink:hover {
+  opacity: 1;
+  background: var(--ifm-color-emphasis-100);
+  text-decoration: none;
+  color: var(--ifm-font-color-base);
+}
+
+.navLinkIndented {
+  padding-left: 1.75rem;
+}
+
+.navLinkActive {
+  opacity: 1;
+  font-weight: 600;
+}

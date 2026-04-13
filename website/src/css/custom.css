@@ -78,12 +78,17 @@
   background: rgba(17, 19, 24, 0.82);
 }
 
-/* Hide navbar title on small screens, keep logo */
+/* Compact navbar on small screens */
 @media (max-width: 576px) {
   .navbar__title {
     display: none;
   }
+
+  .navbar__link {
+    font-size: 0.78rem;
+  }
 }
+
 
 /* Always show all navbar items, never collapse to hamburger */
 .navbar__toggle {
@@ -348,6 +353,11 @@
 
 .table-of-contents__link {
   font-size: 0.85rem;
+}
+
+/* Hide mobile "On this page" dropdown */
+div[class*='tocMobile'] {
+  display: none !important;
 }
 
 /* ── Pagination ──────────────────────────────────── */

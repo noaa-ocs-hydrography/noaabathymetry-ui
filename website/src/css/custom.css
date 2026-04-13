@@ -87,6 +87,10 @@
   .navbar__link {
     font-size: 0.82rem !important;
   }
+
+  .navbar__brand {
+    margin-right: 0.55rem !important;
+  }
 }
 
 

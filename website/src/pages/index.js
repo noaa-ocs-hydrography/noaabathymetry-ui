@@ -80,15 +80,12 @@ function Hero() {
   );
 }
 
-function Feature({title, description, link, isLast}) {
+function Feature({title, description, link}) {
   return (
-    <>
-      <Link className={styles.featureCard} to={link}>
-        <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
-        <p className={styles.featureDescription}>{description}</p>
-      </Link>
-      {!isLast && <div className={styles.featureConnector}><div className={styles.connectorDot} /><div className={styles.connectorLine} /><div className={styles.connectorArrow} /></div>}
-    </>
+    <Link className={styles.featureCard} to={link}>
+      <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
+      <p className={styles.featureDescription}>{description}</p>
+    </Link>
   );
 }
 
@@ -98,10 +95,11 @@ function Features() {
       <div className="container">
         <div className={styles.featuresGrid}>
           {features.map((props, idx) => (
-            <Feature key={idx} isLast={idx === features.length - 1} {...props} />
+            <Feature key={idx} {...props} />
           ))}
         </div>
       </div>
+      <div className={styles.waveFront} />
     </section>
   );
 }

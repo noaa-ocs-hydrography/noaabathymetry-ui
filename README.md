@@ -1,7 +1,7 @@
 <h1 align="center">NOAA Bathymetry UI</h1>
 
 <p align="center">
-Get the latest and best public bathymetry
+Get the latest bathymetry
 </p>
 
 ## Overview

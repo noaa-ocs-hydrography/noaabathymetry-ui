@@ -78,6 +78,13 @@
   background: rgba(17, 19, 24, 0.82);
 }
 
+/* Hide navbar title on small screens, keep logo */
+@media (max-width: 576px) {
+  .navbar__title {
+    display: none;
+  }
+}
+
 /* Always show all navbar items, never collapse to hamburger */
 .navbar__toggle {
   display: none !important;

@@ -14,4 +14,4 @@ dependencies = [
 ]
 
 [project.scripts]
-nbs-gui = "src.main:main"
+noaabathymetry-ui = "src.main:main"

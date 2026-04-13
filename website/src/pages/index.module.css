@@ -241,6 +241,15 @@
   gap: 0;
 }
 
+@media (max-width: 576px) {
+  .sourcePills {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: center;
+    gap: 0.25rem 0;
+  }
+}
+
 .sourcePill {
   font-size: 0.8rem;
   font-weight: 500;

@@ -74,6 +74,12 @@ const config = {
             label: 'About NBS',
           },
           {
+            type: 'doc',
+            docId: 'support',
+            position: 'left',
+            label: 'Support',
+          },
+          {
             href: 'https://github.com/noaa-ocs-hydrography/noaabathymetry-ui',
             position: 'right',
             className: 'header-github-link',
@@ -88,7 +94,7 @@ const config = {
             title: 'Documentation',
             items: [
               { label: 'Getting Started', to: '/docs/getting-started' },
-              { label: 'Installation', to: '/docs/installation' },
+              { label: 'Download', to: '/docs/installation' },
             ],
           },
           {

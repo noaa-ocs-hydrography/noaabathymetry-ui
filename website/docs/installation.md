@@ -1,11 +1,11 @@
 ---
 sidebar_position: 2
-title: Installation
+title: Download
 ---
 
-# Installation
+# Download
 
-Download the latest release for your platform. No installation or Python environment required.
+Download the latest release for your platform. No installation or Python environment required. Just download and run.
 
 | Platform | Link |
 |----------|------|

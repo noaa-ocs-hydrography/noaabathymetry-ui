@@ -1,0 +1,357 @@
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4fd8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #93bbfd;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.7;
+  --ifm-heading-font-weight: 600;
+  --ifm-font-weight-bold: 600;
+  --ifm-border-radius: 8px;
+  --ifm-font-color-base: #1a1a2e;
+  --ifm-font-color-secondary: #4b5563;
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-color-emphasis-100: #f7f8fa;
+  --ifm-color-emphasis-200: #ebedf0;
+  --ifm-color-emphasis-300: #dadde1;
+  --ifm-color-emphasis-500: #9ca3af;
+  --ifm-color-emphasis-600: #6b7280;
+  --ifm-color-emphasis-700: #4b5563;
+  --docusaurus-highlighted-code-line-bg: rgba(37, 99, 235, 0.06);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #6fa0ff;
+  --ifm-color-primary-dark: #4d87ff;
+  --ifm-color-primary-darker: #3a7eff;
+  --ifm-color-primary-darkest: #0b5de8;
+  --ifm-color-primary-light: #91b5ff;
+  --ifm-color-primary-lighter: #a2c1ff;
+  --ifm-color-primary-lightest: #c5d9ff;
+  --ifm-font-color-base: #e4e6ea;
+  --ifm-font-color-secondary: #b0b8c4;
+  --ifm-background-color: #111318;
+  --ifm-background-surface-color: #181a20;
+  --ifm-color-emphasis-100: #1c1e24;
+  --ifm-color-emphasis-200: #2a2d35;
+  --ifm-color-emphasis-300: #3a3d45;
+  --ifm-color-emphasis-500: #6b7280;
+  --ifm-color-emphasis-600: #9ca3af;
+  --ifm-color-emphasis-700: #d1d5db;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Navbar ──────────────────────────────────────── */
+
+.navbar {
+  backdrop-filter: saturate(180%) blur(16px);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: none;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .navbar {
+  background: rgba(17, 19, 24, 0.82);
+}
+
+/* Always show all navbar items, never collapse to hamburger */
+.navbar__toggle {
+  display: none !important;
+}
+
+.navbar__items,
+.navbar__items--right {
+  display: flex !important;
+}
+
+.navbar__item {
+  display: flex !important;
+}
+
+
+.navbar__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: -0.02em;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+}
+
+.navbar__items:has(.navbar__link--active) .navbar__title {
+  opacity: 0.5;
+}
+
+.navbar__brand:hover .navbar__title {
+  opacity: 1;
+}
+
+.navbar__brand {
+  color: var(--ifm-font-color-base) !important;
+}
+
+.navbar__brand:hover {
+  color: var(--ifm-font-color-base) !important;
+}
+
+.navbar__logo {
+  display: flex;
+  align-items: center;
+}
+
+.navbar__logo img {
+  height: 28px;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+  position: relative;
+  top: -1px;
+}
+
+.navbar__items:has(.navbar__link--active) .navbar__logo img {
+  opacity: 0.5;
+}
+
+.navbar__brand:hover .navbar__logo img {
+  opacity: 1;
+}
+
+.navbar__link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.5;
+  color: var(--ifm-font-color-base) !important;
+  transition: opacity 0.15s ease;
+}
+
+.navbar__link:hover,
+.navbar__link--active {
+  opacity: 0.9;
+  color: var(--ifm-font-color-base) !important;
+}
+
+/* GitHub icon in navbar */
+.header-github-link {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.header-github-link:hover {
+  opacity: 1;
+}
+
+.header-github-link::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  display: flex;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%231a1a2e' d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E") no-repeat;
+}
+
+[data-theme='dark'] .header-github-link::before {
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23ffffff' d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E") no-repeat;
+}
+
+/* ── Doc pages ───────────────────────────────────── */
+
+.markdown h1:first-child {
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+}
+
+.markdown h2 {
+  font-size: 1.35rem;
+  margin-top: 2.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  letter-spacing: -0.01em;
+}
+
+.markdown h3 {
+  font-size: 1.1rem;
+}
+
+.markdown p,
+.markdown li {
+  line-height: 1.75;
+  color: var(--ifm-font-color-secondary);
+}
+
+.markdown strong {
+  color: var(--ifm-font-color-base);
+}
+
+.markdown a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.markdown table {
+  display: table;
+  width: 100%;
+  font-size: 0.9rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.markdown table th {
+  background: var(--ifm-color-emphasis-100);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.markdown table td,
+.markdown table th {
+  border-color: var(--ifm-color-emphasis-200);
+}
+
+.markdown table tbody tr:hover {
+  background: var(--ifm-color-emphasis-100);
+}
+
+/* Inline code */
+.markdown code {
+  background: var(--ifm-color-emphasis-100);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 5px;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.88em;
+}
+
+/* Admonitions */
+.admonition {
+  border-radius: 10px;
+  border-width: 1px;
+  border-left-width: 4px;
+}
+
+/* ── Footer ──────────────────────────────────────── */
+
+.footer--dark {
+  background: #0f1117;
+}
+
+.footer {
+  font-size: 0.88rem;
+  padding-top: 3rem;
+}
+
+.footer .row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  max-width: 700px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.footer .row > * {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer__items {
+  text-align: left;
+}
+
+.footer__link-item svg {
+  display: none;
+}
+
+.footer__title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.4;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.footer__link-item {
+  font-size: 0.88rem;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+}
+
+.footer__link-item:hover {
+  opacity: 1;
+}
+
+.footer__copyright {
+  opacity: 0.35;
+  font-size: 0.8rem;
+  margin-top: 2rem;
+}
+
+/* ── Sidebar ─────────────────────────────────────── */
+
+.theme-doc-sidebar-menu .menu__link {
+  font-size: 0.9rem;
+  font-weight: 450;
+  border-radius: 6px;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  font-weight: 600;
+}
+
+/* ── Breadcrumbs ─────────────────────────────────── */
+
+.theme-doc-breadcrumbs {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* ── Code blocks ─────────────────────────────────── */
+
+.prism-code {
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+/* ── TOC ─────────────────────────────────────────── */
+
+.table-of-contents__link {
+  font-size: 0.85rem;
+}
+
+/* ── Pagination ──────────────────────────────────── */
+
+.pagination-nav__link {
+  border-radius: 10px;
+  border-color: var(--ifm-color-emphasis-200);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--ifm-color-emphasis-300);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}

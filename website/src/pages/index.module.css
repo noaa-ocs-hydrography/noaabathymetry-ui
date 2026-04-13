@@ -1,0 +1,330 @@
+/* ── Hero ─────────────────────────────────────────── */
+
+.hero {
+  padding: 3rem 0 0;
+  overflow: hidden;
+}
+
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.heroText {
+  max-width: 600px;
+}
+
+.heroLogo {
+  height: 5rem;
+  margin-bottom: 0.4rem;
+  opacity: 0.8;
+}
+
+.heroLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ifm-color-emphasis-400);
+  margin-bottom: 1rem;
+}
+
+.heroTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.035em;
+  color: var(--ifm-heading-color);
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--ifm-color-emphasis-500);
+  margin-bottom: 0;
+}
+
+.heroVideo {
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.heroVideo iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 2.5rem 0 2rem;
+  }
+
+  .heroTitle {
+    font-size: 1.8rem;
+  }
+}
+
+/* ── Sections shared ─────────────────────────────── */
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  position: relative;
+  z-index: 1;
+}
+
+.sectionSubtitle {
+  text-align: center;
+  color: var(--ifm-font-color-base);
+  margin-bottom: 2.5rem;
+  font-size: 1.05rem;
+  position: relative;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+/* ── Features ────────────────────────────────────── */
+
+.features {
+  padding: 1.5rem 0 3rem;
+  position: relative;
+}
+
+.featuresTagline {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ifm-color-emphasis-400);
+  margin-bottom: 2rem;
+}
+
+.featuresGrid {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.featureCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.25rem 1.5rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 140px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+  text-decoration: none;
+  color: inherit;
+}
+
+[data-theme='dark'] .featureCard:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.featureTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  letter-spacing: -0.02em;
+}
+
+.featureDescription {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ifm-color-emphasis-500);
+  margin: 0;
+}
+
+/* Connector between cards */
+.featureConnector {
+  display: flex;
+  align-items: center;
+  padding: 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.connectorDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ifm-color-emphasis-300);
+}
+
+.connectorLine {
+  width: 24px;
+  height: 1px;
+  background: var(--ifm-color-emphasis-300);
+  animation: connectorPulse 2s ease-in-out infinite;
+}
+
+.connectorArrow {
+  width: 0;
+  height: 0;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-left: 5px solid var(--ifm-color-emphasis-300);
+}
+
+@keyframes connectorPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .featuresGrid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .featureCard {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .featureConnector {
+    transform: rotate(90deg);
+    padding: 0.5rem 0;
+  }
+}
+
+/* ── Data Sources ────────────────────────────────── */
+
+.dataSources {
+  padding: 0.75rem 0 1rem;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.dataSources .sectionSubtitle {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary-light);
+  opacity: 1;
+  margin-bottom: 0.5rem;
+
+}
+
+.sourcePills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+}
+
+.sourcePill {
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+  letter-spacing: 0.02em;
+  color: var(--ifm-color-emphasis-500);
+  padding: 0.3rem 0.9rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+  position: relative;
+}
+
+.sourcePill:hover,
+.sourcePillActive {
+  color: var(--ifm-font-color-base);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+.sourceDesc {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-500);
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  min-height: 1.2rem;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.disclaimerText {
+  color: #e8917a;
+}
+
+
+/* ── Downloads ───────────────────────────────────── */
+
+.downloads {
+  padding: 4.5rem 0;
+}
+
+.downloadLinks {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.downloadIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.downloadIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.downloadLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.downloadSub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  opacity: 0.5;
+  margin-top: -0.2rem;
+}
+
+.downloadLink:hover {
+  opacity: 1;
+  color: var(--ifm-font-color-base);
+}
+

@@ -1,9 +1,10 @@
 ---
 sidebar_position: 5
 title: About NBS
+hide_table_of_contents: true
 ---
 
-# About NBS
+# National Bathymetric Source
 
 NOAA's National Bathymetric Source (NBS) builds and publishes the best available high-resolution bathymetric data of U.S. waters.
 

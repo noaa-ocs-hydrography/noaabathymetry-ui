@@ -15,7 +15,6 @@ const sidebars = {
         'features/export-projects',
       ],
     },
-    'about-nbs',
     'troubleshooting',
   ],
 };

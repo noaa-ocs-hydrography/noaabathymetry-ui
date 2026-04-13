@@ -4,9 +4,9 @@ title: About NBS
 hide_table_of_contents: true
 ---
 
-# National Bathymetric Source
+# About NBS
 
-NOAA's National Bathymetric Source (NBS) builds and publishes the best available high-resolution bathymetric data of U.S. waters.
+NOAA Bathymetry UI is built on data from NOAA's National Bathymetric Source (NBS). Watch the video below to learn more about the program, or explore the links at the bottom of this page.
 
 <div style={{position: 'relative', width: '100%', maxWidth: '720px', aspectRatio: '16/9', margin: '2rem auto'}}>
   <iframe
@@ -18,10 +18,6 @@ NOAA's National Bathymetric Source (NBS) builds and publishes the best available
     style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', borderRadius: '10px'}}
   />
 </div>
-
-## What NBS provides
-
-NBS data provides depth measurements nationwide, along with vertical uncertainty estimates and information on the originating survey source. The program's workflow is designed for continuous throughput, ensuring data is regularly updated and always publicly accessible.
 
 ## Learn more
 

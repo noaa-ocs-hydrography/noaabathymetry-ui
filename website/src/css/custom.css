@@ -79,13 +79,13 @@
 }
 
 /* Compact navbar on small screens */
-@media (max-width: 576px) {
+@media (max-width: 768px) {
   .navbar__title {
     display: none;
   }
 
   .navbar__link {
-    font-size: 0.78rem;
+    font-size: 0.82rem !important;
   }
 }
 

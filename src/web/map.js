@@ -637,7 +637,7 @@ function _renderVersionMenu(versions) {
     if (!_cachedUpdates) {
         html += '<div class="version-check-failed">Checking...</div>';
     } else if (_cachedUpdates.library.update_available) {
-        html += '<div class="version-update">Latest: v' + _cachedUpdates.library.latest + '</div>';
+        html += '<div class="version-update">Latest available: v' + _cachedUpdates.library.latest + '</div>';
     } else if (_cachedUpdates.library.update_available === null) {
         html += '<div class="version-check-failed">Could not check for updates</div>';
     } else {

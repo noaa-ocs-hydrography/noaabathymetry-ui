@@ -16,10 +16,10 @@ This data provides depth measurements nationwide, along with vertical uncertaint
 
 | Format | Description |
 |--------|-------------|
-| **BlueTopo** | GeoTIFF compilations of the best available public bathymetric data |
+| **BlueTopo** | GeoTIFF compilations of the best available public bathymetric data on a national vertical datum |
 | **Modeling** | GeoTIFF compilations of the best available public bathymetric data on a low water datum |
-| **BAG** | Bathymetric Attributed Grid files |
-| **S-102** | IHO S-102 standard (versions 2.1, 2.2, and 3.0) |
+| **BAG** | Bathymetric Attributed Grid files on a low water datum |
+| **S-102** | IHO S-102 standard (versions 2.1, 2.2, and 3.0) on a low water datum |
 
 :::note
 S-102 data are for test and evaluation and should not be used for navigation.

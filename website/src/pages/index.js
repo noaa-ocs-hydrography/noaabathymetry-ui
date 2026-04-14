@@ -128,12 +128,12 @@ function Downloads() {
 }
 
 const sources = [
-  { name: 'BlueTopo', desc: 'GeoTIFF compilations of the best available public bathymetric data' },
+  { name: 'BlueTopo', desc: 'GeoTIFF compilations of the best available public bathymetric data on a national vertical datum' },
   { name: 'Modeling', desc: 'GeoTIFF compilations of the best available public bathymetric data on a low water datum' },
-  { name: 'BAG', desc: 'Bathymetric Attributed Grid files' },
-  { name: 'S-102 v2.1', desc: 'IHO S-102 version 2.1||These data are for test and evaluation and should not be used for navigation' },
-  { name: 'S-102 v2.2', desc: 'IHO S-102 version 2.2||These data are for test and evaluation and should not be used for navigation' },
-  { name: 'S-102 v3.0', desc: 'IHO S-102 version 3.0||These data are for test and evaluation and should not be used for navigation' },
+  { name: 'BAG', desc: 'Bathymetric Attributed Grid files on a low water datum' },
+  { name: 'S-102 v2.1', desc: 'IHO S-102 version 2.1 on a low water datum||These data are for test and evaluation and should not be used for navigation' },
+  { name: 'S-102 v2.2', desc: 'IHO S-102 version 2.2 on a low water datum||These data are for test and evaluation and should not be used for navigation' },
+  { name: 'S-102 v3.0', desc: 'IHO S-102 version 3.0 on a low water datum||These data are for test and evaluation and should not be used for navigation' },
 ];
 
 function DataSources() {

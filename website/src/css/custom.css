@@ -125,6 +125,10 @@
   opacity: 1;
 }
 
+.navbar__brand:active {
+  transform: scale(0.95);
+}
+
 .navbar__brand {
   color: var(--ifm-font-color-base) !important;
 }
@@ -162,7 +166,15 @@
   transition: opacity 0.15s ease;
 }
 
-.navbar__link:hover,
+.navbar__link:hover {
+  opacity: 0.9;
+  color: var(--ifm-font-color-base) !important;
+}
+
+.navbar__link:active {
+  transform: scale(0.95);
+}
+
 .navbar__link--active {
   opacity: 0.9;
   color: var(--ifm-font-color-base) !important;
@@ -176,6 +188,10 @@
 
 .header-github-link:hover {
   opacity: 1;
+}
+
+.header-github-link:active {
+  transform: scale(0.9);
 }
 
 .header-github-link::before {

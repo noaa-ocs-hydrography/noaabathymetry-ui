@@ -59,9 +59,6 @@ function Hero() {
           <div className={styles.heroText}>
             <img src={require('@site/static/img/NOAA-1.png').default} alt="NOAA" className={styles.heroLogo} />
             <p className={styles.heroLabel}>National Bathymetric Source</p>
-            <Heading as="h1" className={styles.heroTitle}>
-              {siteConfig.title}
-            </Heading>
             <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
           </div>
           {/* TODO: Add back when demo video is ready. This is a placeholder.
@@ -141,30 +138,29 @@ function DataSources() {
   return (
     <section className={styles.dataSources}>
       <div className="container">
-        <p className={styles.sectionSubtitle}>
-          Data Sources
-        </p>
-        <div className={styles.sourcePills}>
+        <div className={styles.sourceGrid}>
+          <div className={styles.sourceLabel}>Data Sources</div>
           {sources.map((s, idx) => (
-            <span
-              key={idx}
-              className={clsx(styles.sourcePill, activeDesc === s.desc && styles.sourcePillActive)}
-              onMouseEnter={() => setActiveDesc(s.desc)}
-              onMouseLeave={() => {}}
-            >{s.name}</span>
+            <div key={idx} className={styles.sourceFlip}>
+              <div className={styles.sourceFlipInner}>
+                <div className={styles.sourceFlipFront}>
+                  <span className={styles.sourceFlipName}>{s.name}</span>
+                </div>
+                <div className={styles.sourceFlipBack}>
+                  <span className={styles.sourceFlipDesc}>
+                    {s.desc.includes('||') ? (
+                      <>
+                        {s.desc.split('||')[0]}
+                        <br />
+                        <span className={styles.disclaimerText}>{s.desc.split('||')[1]}</span>
+                      </>
+                    ) : s.desc}
+                  </span>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-        <p className={styles.sourceDesc}>
-          {activeDesc && activeDesc.includes('||') ? (
-            <>
-              {activeDesc.split('||')[0]}
-              <br />
-              <span className={styles.disclaimerText}>{activeDesc.split('||')[1]}</span>
-            </>
-          ) : (
-            activeDesc || '\u00A0'
-          )}
-        </p>
       </div>
     </section>
   );

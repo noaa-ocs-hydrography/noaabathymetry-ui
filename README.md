@@ -1,8 +1,5 @@
 <h1 align="center">NOAA Bathymetry UI</h1>
-
-<p align="center">
-Get the latest bathymetry
-</p>
+<p align="center">Get the latest bathymetry</p>
 
 ## Overview
 
@@ -19,8 +16,6 @@ See the [documentation](https://noaa-ocs-hydrography.github.io/noaabathymetry-ui
 | Windows | [Download](https://github.com/noaa-ocs-hydrography/noaabathymetry-ui/releases/latest/download/noaabathymetry.exe) |
 
 No installation or Python environment required. Just download and run.
-
-![noaabathymetry-ui](assets/noaabathymetry_ui.png)
 
 ## Background
 

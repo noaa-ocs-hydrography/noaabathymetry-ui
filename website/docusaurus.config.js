@@ -100,8 +100,8 @@ const config = {
           {
             title: 'More',
             items: [
-              { label: 'noaabathymetry-ui', href: 'https://github.com/noaa-ocs-hydrography/noaabathymetry-ui' },
-              { label: 'noaabathymetry', href: 'https://github.com/noaa-ocs-hydrography/noaabathymetry' },
+              { label: 'GitHub noaabathymetry-ui', href: 'https://github.com/noaa-ocs-hydrography/noaabathymetry-ui' },
+              { label: 'GitHub noaabathymetry', href: 'https://github.com/noaa-ocs-hydrography/noaabathymetry' },
               { label: 'National Bathymetric Source', href: 'https://nauticalcharts.noaa.gov/learn/nbs.html' },
             ],
           },

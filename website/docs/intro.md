@@ -10,9 +10,9 @@ NOAA Bathymetry UI is a browser-based interface for the [noaabathymetry](https:/
 
 ## What is the National Bathymetric Source?
 
-NOAA's [National Bathymetric Source](https://nauticalcharts.noaa.gov/learn/nbs.html) (NBS) builds and publishes the best available high-resolution bathymetric data of U.S. waters. The program ensures the best bathymetric data is always available to professionals and the public.
+NOAA's [National Bathymetric Source](https://nauticalcharts.noaa.gov/learn/nbs.html) (NBS) builds and publishes the best available high-resolution bathymetric data of U.S. waters. The program works to ensure the best bathymetric data is always available to professionals and the public. [Learn more about NBS](/docs/about-nbs).
 
-This data provides depth measurements nationwide, along with vertical uncertainty estimates and information on the originating survey source. It is available in multiple formats hosted on a public S3 bucket:
+The NBS data provides depth measurements nationwide, along with vertical uncertainty estimates and information on the originating survey source. Multiple data sources are published by the NBS, each serving different use cases:
 
 | Format | Description |
 |--------|-------------|

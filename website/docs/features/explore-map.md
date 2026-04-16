@@ -5,7 +5,7 @@ title: Explore Map
 
 # Explore Map
 
-The interactive map is the central element of the application. It lets you browse NBS data coverage, define areas of interest, and visualize the status of your downloaded tiles.
+The interactive map is the central element of the application. It lets you browse NBS data coverage and visualize the status of your downloaded tiles.
 
 ## Data sources
 
@@ -26,21 +26,13 @@ S-102 data are for test and evaluation and should not be used for navigation.
 
 Switching the data source updates which tiles are shown on the map and which tiles will be fetched.
 
-## NBS Source layer
-
-Toggle the **NBS Source** layer from the layer controls in the bottom-left corner of the map. This overlay shows the tile scheme, the grid of available tiles from NBS for the selected data source. It helps you see what data is available before you fetch.
-
-## Drawing tools
-
-Use the drawing controls on the map to define your area of interest:
-
-- **Draw a polygon** on the map to outline the region you want to fetch tiles for
-- The drawn geometry is used by the Fetch command to determine which tiles to download
-- You can also enter geometry directly in the Geometry field (see [Fetch Tiles](./fetch-tiles.md))
-
 ## Click to query
 
 Click on tiles in the NBS Source and Your Project layers to see tile properties.
+
+## NBS Source layer
+
+Toggle the **NBS Source** layer from the layer controls in the bottom-left corner of the map. This overlay shows the tile scheme, the grid of available tiles from NBS for the selected data source. It helps you see what data is available before you fetch.
 
 ## Your Project layer
 

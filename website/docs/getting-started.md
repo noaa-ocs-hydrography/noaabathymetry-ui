@@ -17,6 +17,10 @@ On your first launch, a welcome toast will guide you through the basic workflow:
 2. **Draw your area of interest** — Use the drawing tool on the map to outline the area you want to fetch data for.
 3. **Click Fetch** — Downloads tiles from NBS to your project folder.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/99b952f8-d9ea-4065-bc57-c6c550c7e615" alt="Fetch walkthrough" width="720" />
+</p>
+
 ## Interface overview
 
 The interface is organized into several areas:

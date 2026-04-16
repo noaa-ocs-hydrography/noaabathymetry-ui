@@ -1,11 +1,28 @@
-<h1 align="center">NOAA Bathymetry UI</h1>
-<p align="center">Get the latest bathymetry</p>
+<h1 align="center">
+  <img src="assets/NOAA-1.png" alt="" width="72" /><br>
+  NOAA Bathymetry UI
+</h1>
+<p align="center">
+  Point-and-click access to NOAA's National Bathymetric Source data.
+</p>
+
+<p align="center">
+  <a href="https://github.com/noaa-ocs-hydrography/noaabathymetry-ui/releases/latest"><img src="https://img.shields.io/github/v/release/noaa-ocs-hydrography/noaabathymetry-ui?color=0a69d8" alt="Latest release"></a>
+  <a href="#download"><img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="Platform"></a>
+</p>
+
+<p align="center">
+  <a href="https://noaa-ocs-hydrography.github.io/noaabathymetry-ui/"><kbd> &nbsp;📘 Docs&nbsp; </kbd></a>
+  <a href="#download"><kbd> &nbsp;⬇ Download&nbsp; </kbd></a>
+</p>
 
 ## Overview
 
 Browser-based interface for the [noaabathymetry](https://github.com/noaa-ocs-hydrography/noaabathymetry) Python package. Explore NBS data on an interactive map, fetch tiles in your area of interest, build mosaics, and export your project as a portable zip.
 
-See the [documentation](https://noaa-ocs-hydrography.github.io/noaabathymetry-ui/) for more details.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/99b952f8-d9ea-4065-bc57-c6c550c7e615" alt="Fetch demo" width="720" />
+</p>
 
 ## Download
 
@@ -16,10 +33,6 @@ See the [documentation](https://noaa-ocs-hydrography.github.io/noaabathymetry-ui
 | Windows | [Download](https://github.com/noaa-ocs-hydrography/noaabathymetry-ui/releases/latest/download/noaabathymetry.exe) |
 
 No installation or Python environment required. Just download and run.
-
-## Background
-
-NOAA's [National Bathymetric Source](https://nauticalcharts.noaa.gov/learn/nbs.html) builds and publishes the best available high-resolution bathymetric data of U.S. waters. The program's workflow is designed for continuous throughput, ensuring the best bathymetric data is always available to professionals and the public. This data provides depth measurements nationwide, along with vertical uncertainty estimates and information on the originating survey source. It is available in multiple formats (GeoTIFF compilations like [BlueTopo](https://www.nauticalcharts.noaa.gov/data/bluetopo.html) and Modeling, BAG, and IHO S-102) hosted on a public S3 bucket.
 
 ## License
 

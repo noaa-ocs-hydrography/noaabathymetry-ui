@@ -1,5 +1,6 @@
 <h1 align="center">
-  <img src="assets/NOAA-1.png" alt="" width="72" /><br>
+  <a href="https://nauticalcharts.noaa.gov/learn/nbs.html"><img src="assets/NOAA-1.png" alt="NOAA" width="180"></a>
+  <br>
   NOAA Bathymetry
 </h1>
 <p align="center">

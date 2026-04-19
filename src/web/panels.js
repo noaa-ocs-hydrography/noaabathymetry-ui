@@ -351,7 +351,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // ── Toast & status bar ──────────────────────────────
 
-var docsUrl = "https://noaa-ocs-hydrography.github.io/noaabathymetry-ui/";
+var docsUrl = "https://noaa-ocs-hydrography.github.io/noaabathymetry-ui/docs/intro";
 
 function switchView(view) {
     document.getElementById("btn-view-app").classList.toggle("active", view === "app");

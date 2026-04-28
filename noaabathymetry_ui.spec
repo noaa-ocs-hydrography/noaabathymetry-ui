@@ -59,8 +59,10 @@ else:
 
 extra_bins = []
 if is_win:
-    for pattern in ["libssl*.dll", "libcrypto*.dll", "hdf5*.dll", "libhdf5*.dll"]:
-        extra_bins += [(f, ".") for f in glob.glob(os.path.join(lib_dir, pattern))]
+    # Dragnet: bundle every DLL from the conda env's Library/bin so transitive
+    # GDAL deps (libcurl, libgeos, libpng, libtiff, sqlite, etc.) are all included.
+    # PyInstaller's static analysis misses many of these on Windows + conda GDAL.
+    extra_bins += [(f, ".") for f in glob.glob(os.path.join(lib_dir, "*.dll"))]
 else:
     for pattern in ["libssl*", "libcrypto*", "libhdf5*"]:
         extra_bins += [(f, ".") for f in glob.glob(os.path.join(lib_dir, pattern)) if not os.path.islink(f)]

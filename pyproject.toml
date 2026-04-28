@@ -9,6 +9,9 @@ requires-python = ">=3.10"
 description = "Browser-based interface for noaabathymetry"
 dependencies = [
     "noaabathymetry==0.8.3",
+    "boto3==1.42.52",
+    "botocore==1.42.52",
+    "urllib3==2.6.3",
     "aiohttp==3.13.5",
     "certifi==2026.2.25",
 ]

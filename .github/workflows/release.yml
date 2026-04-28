@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           conda install -y gdal libgdal-hdf5
-          pip install aiohttp==3.13.5 certifi==2026.2.25 pyinstaller==6.19.0
+          pip install aiohttp==3.13.5 certifi==2026.2.25 pyinstaller==6.19.0 boto3==1.42.52 botocore==1.42.52 urllib3==2.6.3
           pip install noaabathymetry==0.8.3
           pip install .
 

@@ -43,7 +43,7 @@ jobs:
         run: |
           conda install -y gdal libgdal-hdf5
           pip install aiohttp==3.13.5 certifi==2026.2.25 pyinstaller==6.19.0
-          pip install noaabathymetry==0.8.2
+          pip install noaabathymetry==0.8.3
           pip install .
 
       - name: Generate Windows icon

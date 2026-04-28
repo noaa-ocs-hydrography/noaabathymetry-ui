@@ -850,15 +850,15 @@ legendPanel.innerHTML =
     '<button id="btn-layer-remote" class="layers-btn" onclick="toggleRemoteLayer()" title="What\'s available on NBS?">' +
     '<span class="layer-dot remote"></span>NBS Source</button>' +
     '<button id="btn-remote-fill" class="layers-fill-btn fill-on" onclick="event.stopPropagation();toggleRemoteFill()" title="Toggle fill">' +
-    '<span class="fill-icon"></span></button>' +
-    '<button class="layers-res-btn" onclick="event.stopPropagation();toggleResFlyout(\'remote\',this)" title="Filter by resolution">»</button>' +
+    '<svg class="fill-icon" viewBox="0 0 12 12" aria-hidden="true"><rect class="fill-bg" x="0.75" y="0.75" width="10.5" height="10.5" rx="2"/><rect class="fill-frame" x="0.75" y="0.75" width="10.5" height="10.5" rx="2" pathLength="40"/></svg></button>' +
+    '<button class="layers-res-btn" onclick="event.stopPropagation();toggleResFlyout(\'remote\',this)" title="Display options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h6M13 6h8M3 12h2M9 12h12M3 18h12M19 18h2"/><circle cx="11" cy="6" r="2" fill="currentColor"/><circle cx="7" cy="12" r="2" fill="currentColor"/><circle cx="17" cy="18" r="2" fill="currentColor"/></svg></button>' +
     '<div id="res-flyout-remote" class="res-flyout" style="display:none"></div></div>' +
     '<div class="layers-item">' +
     '<button id="btn-layer-tracked" class="layers-btn" onclick="toggleTrackedLayer()" title="What\'s the status of your tiles?">' +
     '<span class="layer-dot tracked"></span>Your Project</button>' +
     '<button id="btn-tracked-fill" class="layers-fill-btn fill-on" onclick="event.stopPropagation();toggleTrackedFill()" title="Toggle fill">' +
-    '<span class="fill-icon"></span></button>' +
-    '<button class="layers-res-btn" onclick="event.stopPropagation();toggleResFlyout(\'tracked\',this)" title="Filter by resolution">»</button>' +
+    '<svg class="fill-icon" viewBox="0 0 12 12" aria-hidden="true"><rect class="fill-bg" x="0.75" y="0.75" width="10.5" height="10.5" rx="2"/><rect class="fill-frame" x="0.75" y="0.75" width="10.5" height="10.5" rx="2" pathLength="40"/></svg></button>' +
+    '<button class="layers-res-btn" onclick="event.stopPropagation();toggleResFlyout(\'tracked\',this)" title="Display options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h6M13 6h8M3 12h2M9 12h12M3 18h12M19 18h2"/><circle cx="11" cy="6" r="2" fill="currentColor"/><circle cx="7" cy="12" r="2" fill="currentColor"/><circle cx="17" cy="18" r="2" fill="currentColor"/></svg></button>' +
     '<div id="res-flyout-tracked" class="res-flyout" style="display:none"></div></div>' +
     '</div></div>';
 document.getElementById("map").appendChild(legendPanel);
@@ -1601,6 +1601,7 @@ function toggleTrackedLayer() {
         removeTrackedFromMap();
         btn.classList.remove("layer-on");
         updateLegend();
+        if (typeof setProjectTileCount === "function") setProjectTileCount(null);
     } else {
         if (!bridge) return;
         if (currentCommand === "fetch") { showToast("Wait for fetch to finish"); return; }
@@ -1678,6 +1679,7 @@ function onLayersReady(data) {
             trackedActive = false;
             trackedIsReload = false;
             btn.classList.remove("layer-on");
+            if (typeof setProjectTileCount === "function") setProjectTileCount(null);
             var errMsg = data.error || "";
             if (errMsg.indexOf("Registry database not found") >= 0 || errMsg.indexOf("Folder path not found") >= 0) {
                 showToast("No project found here yet. Fetch to get started");
@@ -1687,6 +1689,7 @@ function onLayersReady(data) {
             return;
         }
         trackedDisplayData = data.data;
+        if (typeof setProjectTileCount === "function") setProjectTileCount(data.total || 0);
         addTrackedToMap(data.data);
         updateLegend();
         if (!trackedIsReload) {

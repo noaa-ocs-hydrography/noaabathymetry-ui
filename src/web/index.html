@@ -8,17 +8,23 @@
 </head>
 <body>
     <div id="topbar">
-        <button class="icon-btn active" id="btn-view-app" onclick="switchView('app')" title="App">⌂</button>
-        <button class="icon-btn" id="btn-view-docs" onclick="switchView('docs')" title="Docs">?</button>
+        <img class="brand-logo" src="/static/NOAA-2.png" alt="NOAA">
+        <div class="topbar-divider"></div>
+        <div class="view-switcher">
+            <button class="view-btn active" id="btn-view-app" onclick="switchView('app')">Home</button>
+            <button class="view-btn" id="btn-view-docs" onclick="switchView('docs')">Docs</button>
+        </div>
         <div class="topbar-divider"></div>
         <div class="topbar-item">
-            <div style="display:flex;gap:4px;align-items:center;">
-                <span class="topbar-label">Your Project:</span>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span class="topbar-label">Your Project</span>
                 <div style="flex:1;position:relative;">
                     <div class="dir-input-wrap">
                         <input type="text" id="project-dir" placeholder="/path/to/project"
                                oninput="onDirInput()" onfocus="onDirFocus()" onclick="onDirClick()" autocomplete="off" />
-                        <button id="btn-open-folder" class="dir-open-btn" onclick="openProjectFolder()" title="Show in Explorer" style="display:none">↗</button>
+                        <button id="btn-open-folder" class="dir-open-btn" onclick="openProjectFolder()" title="Show in Explorer" style="display:none">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h5v5M19 5l-9 9M14 11v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2h6"/></svg>
+                        </button>
                     </div>
                     <div id="dir-suggestions" class="suggestions"></div>
                 </div>
@@ -28,7 +34,7 @@
         <div class="topbar-item" style="min-width:140px;max-width:180px;position:relative;">
             <div id="source-select" class="custom-select" onclick="toggleSourceDropdown()">
                 <span id="source-label">BlueTopo</span>
-                <span class="select-arrow">▾</span>
+                <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
             </div>
             <div id="source-dropdown" class="custom-dropdown">
                 <div class="dropdown-item" data-value="bluetopo" onclick="pickSource(this)">BlueTopo</div>
@@ -45,74 +51,130 @@
     <div id="main">
         <div id="map"></div>
 
+
         <div id="docs-overlay" style="display:none;">
             <iframe id="docs-frame" src="about:blank"></iframe>
         </div>
-    </div>
 
-    <div id="log-header" onclick="toggleLog()" title="Click to show output">
-        <div class="log-dot" id="log-dot"></div>
-        <span>Output</span>
-        <span class="log-command" id="log-command"></span>
-        <span class="log-hide-hint" id="log-hide-hint">(click to hide)</span>
-        <span class="bar-coords" id="bar-coords"></span>
-        <span class="log-chevron" id="log-chevron"><span class="chev">›››</span><span class="chev">›››</span><span class="chev">›››</span></span>
-    </div>
-    <div id="log-pane">
-        <pre id="results"></pre>
-    </div>
-
-    <div id="command-area">
-        <div class="command-left">
-            <div class="command-bars">
-                <div class="commandbar" id="fetchbar">
-                    <button id="btn-fetch" class="command-btn" onclick="runFetch()" data-title="Fetch" data-tooltip="Download tiles from NBS to your project folder.">Fetch</button>
-                    <div class="commandbar-field" style="position:relative;" data-title="Geometry" data-tooltip="Define your area of interest. Draw a shape on the map, enter a geometry string (GeoJSON, WKT, or bounding box), or provide a path to a geometry file.">
-                        <span>Geometry</span>
-                        <input type="text" id="opt-geometry" placeholder="your area of interest" oninput="onGeomInput()" autocomplete="off">
-                        <button class="browse-btn" onclick="browseGeometry()" title="Browse for geometry file">…</button>
-                        <div id="geom-suggestions" class="suggestions"></div>
-                    </div>
-                    <div class="commandbar-field" data-title="Only Resolution(s)" data-tooltip="Fetch only tiles matching these resolutions in meters. Leave blank to fetch all resolutions. Accepts comma separated values e.g. 4,8.">
-                        <span>Only Resolution(s)</span>
-                        <input type="text" id="opt-fetch-resolution" placeholder="e.g. 4,8 (meters)">
-                    </div>
+        <div id="ops-card">
+            <div id="log-pane">
+                <div id="log-toolbar" onmousedown="startLogResize(event)" ondblclick="toggleLog()" title="Drag to resize · double-click to collapse">
+                    <button class="log-action" onclick="clearLog()" onmousedown="event.stopPropagation()" ondblclick="event.stopPropagation()" title="Clear">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6M10 11v6M14 11v6"/></svg>
+                    </button>
+                    <button class="log-action" onclick="copyLog()" onmousedown="event.stopPropagation()" ondblclick="event.stopPropagation()" title="Copy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1 1 0 011-1h10"/></svg>
+                    </button>
+                    <button class="log-action" onclick="toggleLog()" onmousedown="event.stopPropagation()" ondblclick="event.stopPropagation()" title="Close">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
                 </div>
-                <div class="commandbar" id="mosaicbar">
-                    <button id="btn-mosaic" class="command-btn" onclick="runMosaic()" data-title="Mosaic" data-tooltip="Build per-UTM-zone mosaics from your downloaded tiles.">Mosaic</button>
-                    <label class="switch-label" onclick="document.getElementById('opt-hillshade').classList.toggle('on')" data-title="Hillshade" data-tooltip="Generate a 16m hillshade overlay from the mosaic for terrain visualization.">
-                        <span>Hillshade</span>
-                        <span class="switch" id="opt-hillshade"><span class="switch-knob"></span></span>
-                    </label>
-                    <div class="commandbar-field" data-title="Resolution" data-tooltip="Auto selects the finest resolution among your downloaded tiles. Enter a value in meters to override.">
-                        <span>Resolution</span>
-                        <input type="text" id="opt-resolution" placeholder="auto" inputmode="numeric">
-                    </div>
-                    <div class="commandbar-field" data-title="Workers" data-tooltip="Build UTM zones in parallel. One worker per zone. Additional workers beyond your zone count have no effect. Each worker adds to memory usage, so consider your system resources.">
-                        <span>Workers</span>
-                        <input type="text" id="opt-workers" placeholder="auto" inputmode="numeric" maxlength="2">
-                    </div>
+                <div id="log-scroll">
+                    <div id="results"></div>
                 </div>
-                <div class="commandbar" id="exportbar">
-                    <button id="btn-export" class="command-btn" onclick="runExport()" data-title="Export" data-tooltip="Verifies your data, then packages your project into a portable zip. Recipients can use the files directly and even continue the project themselves, picking up where you left off.">Export</button>
-                    <label class="switch-label" onclick="toggleExportMosaics()" data-title="Include Mosaics" data-tooltip="Include the built mosaics in the export zip.">
-                        <span>Include Mosaics</span>
-                        <span class="switch on" id="opt-export-mosaics"><span class="switch-knob"></span></span>
-                    </label>
-                    <label class="switch-label" onclick="document.getElementById('opt-export-repair').classList.toggle('on')" data-title="Flag for Repair" data-tooltip="If verification finds downloaded tiles with mismatched checksums compared to NBS, flag them so the next Fetch re-downloads them.">
-                        <span>Flag for Repair</span>
-                        <span class="switch" id="opt-export-repair"><span class="switch-knob"></span></span>
-                    </label>
-                </div>
+                <button id="log-jump-bottom" onclick="jumpToLogBottom()" title="Jump to bottom">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                    <span>Jump to bottom</span>
+                </button>
             </div>
-            <div id="statusbar">
-                <span class="left" id="statusbar-left">Ready</span>
+            <div id="log-header" onclick="toggleLog()" title="Click to show output">
+                <span class="log-dot" id="log-dot"></span>
+                <span class="log-title">Output</span>
+                <span class="log-command" id="log-command"></span>
+                <svg class="log-chevron" id="log-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+            </div>
+
+            <div id="command-area">
+        <div class="tab-strip" role="tablist">
+            <span class="tab-indicator" aria-hidden="true"></span>
+            <button class="tab active" data-tab="fetch" onclick="switchCommandTab('fetch')" role="tab">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+                <span>Fetch</span>
+            </button>
+            <button class="tab" data-tab="mosaic" onclick="switchCommandTab('mosaic')" role="tab">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+                <span>Mosaic</span>
+            </button>
+            <button class="tab" data-tab="export" onclick="switchCommandTab('export')" role="tab">
+                <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v12.5a.5.5 0 01-.5.5h-17a.5.5 0 01-.5-.5V8m18 0l-2.4-4.2a.5.5 0 00-.43-.25H5.33a.5.5 0 00-.43.25L2.5 8m18 0H2.5M9 12h6"/></svg>
+                <span>Export</span>
+            </button>
+            <div class="tab-actions">
+                <button id="btn-fetch" class="command-btn primary run-btn active" data-run="fetch" onclick="runFetch()" data-title="Fetch" data-tooltip="Download tiles from NBS to your project folder.">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+                    <svg class="btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/><path d="M21 12a9 9 0 0 1-9 9"/></svg>
+                    <span class="btn-label">Run</span>
+                </button>
+                <button id="btn-mosaic" class="command-btn primary run-btn" data-run="mosaic" onclick="runMosaic()" data-title="Mosaic" data-tooltip="Build per-UTM-zone mosaics from your downloaded tiles.">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/></svg>
+                    <svg class="btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/><path d="M21 12a9 9 0 0 1-9 9"/></svg>
+                    <span class="btn-label">Run</span>
+                </button>
+                <button id="btn-export" class="command-btn primary run-btn" data-run="export" onclick="runExport()" data-title="Export" data-tooltip="Verifies your data, then packages your project into a portable zip. Recipients can use the files directly and even continue the project themselves, picking up where you left off.">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v12.5a.5.5 0 01-.5.5h-17a.5.5 0 01-.5-.5V8m18 0l-2.4-4.2a.5.5 0 00-.43-.25H5.33a.5.5 0 00-.43.25L2.5 8m18 0H2.5M9 12h6"/></svg>
+                    <svg class="btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/><path d="M21 12a9 9 0 0 1-9 9"/></svg>
+                    <span class="btn-label">Run</span>
+                </button>
             </div>
         </div>
-        <div class="command-logo">
-            <img src="/static/NOAA-2.png" alt="NOAA">
-            <span class="logo-branding">National Bathymetric Source</span>
+
+        <div class="tab-panel active" id="tab-fetch" role="tabpanel">
+            <div class="commandbar-field" style="position:relative;" data-title="Geometry" data-tooltip="Define your area of interest. Draw a shape on the map, enter a geometry string (GeoJSON, WKT, or bounding box), or provide a path to a geometry file.">
+                <label>Geometry</label>
+                <div class="input-wrap">
+                    <input type="text" id="opt-geometry" placeholder="GeoJSON/WKT/BBOX, file path, or draw" oninput="onGeomInput()" autocomplete="off">
+                    <button class="browse-btn" onclick="browseGeometry()" title="Browse for geometry file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1"/><path d="M3 9h18l-2 9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/></svg>
+                    </button>
+                </div>
+                <div id="geom-suggestions" class="suggestions"></div>
+            </div>
+            <div class="commandbar-field" data-title="Only Resolution(s)" data-tooltip="Fetch only tiles matching these resolutions in meters. Leave blank to fetch all resolutions. Accepts comma separated values e.g. 4,8.">
+                <label>Only Resolution(s)</label>
+                <input type="text" id="opt-fetch-resolution" placeholder="e.g. 4,8 (meters)">
+            </div>
         </div>
+
+        <div class="tab-panel" id="tab-mosaic" role="tabpanel">
+            <label class="switch-label" onclick="document.getElementById('opt-hillshade').classList.toggle('on')" data-title="Hillshade" data-tooltip="Generate a 16m hillshade overlay from the mosaic for terrain visualization.">
+                <span class="switch" id="opt-hillshade"><span class="switch-knob"></span></span>
+                <span>Hillshade</span>
+            </label>
+            <div class="commandbar-field" data-title="Resolution" data-tooltip="Auto selects the finest resolution among your downloaded tiles. Enter a value in meters to override.">
+                <label>Resolution</label>
+                <input type="text" id="opt-resolution" placeholder="auto" inputmode="numeric">
+            </div>
+            <div class="commandbar-field" data-title="Workers" data-tooltip="Build UTM zones in parallel. One worker per zone. Additional workers beyond your zone count have no effect. Each worker adds to memory usage, so consider your system resources.">
+                <label>Workers</label>
+                <input type="text" id="opt-workers" placeholder="auto" inputmode="numeric" maxlength="2">
+            </div>
+        </div>
+
+        <div class="tab-panel" id="tab-export" role="tabpanel">
+            <label class="switch-label" onclick="toggleExportMosaics()" data-title="Include Mosaics" data-tooltip="Include the built mosaics in the export zip.">
+                <span class="switch on" id="opt-export-mosaics"><span class="switch-knob"></span></span>
+                <span>Include Mosaics</span>
+            </label>
+            <label class="switch-label" onclick="document.getElementById('opt-export-repair').classList.toggle('on')" data-title="Flag for Repair" data-tooltip="If verification finds downloaded tiles with mismatched checksums compared to NBS, flag them so the next Fetch re-downloads them.">
+                <span class="switch" id="opt-export-repair"><span class="switch-knob"></span></span>
+                <span>Flag for Repair</span>
+            </label>
+        </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusbar">
+        <span class="status-left" id="statusbar-left">Ready</span>
+        <span class="status-right">
+            <span class="status-chip" id="status-last-command" hidden></span>
+            <span class="status-divider" id="status-last-divider" hidden></span>
+            <span class="status-chip" id="status-tile-count" hidden></span>
+            <span class="status-divider" id="status-tile-divider" hidden></span>
+            <span class="status-coords" id="bar-coords"></span>
+            <span class="status-divider"></span>
+            <span class="status-brand">NOAA · NBS</span>
+        </span>
     </div>
 
     <div id="toast-container"></div>

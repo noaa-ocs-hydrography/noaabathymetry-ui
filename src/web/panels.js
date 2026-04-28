@@ -272,10 +272,15 @@ function _renderFieldTooltip(container) {
     var body = container.getAttribute("data-tooltip") || "";
     var isCmd = container.classList.contains("command-btn");
     var isBusy = isCmd && container.disabled;
+    var busyMsg = "A command is already running…";
+    if (isBusy && currentCommand) {
+        var runningLabel = currentCommand.charAt(0).toUpperCase() + currentCommand.slice(1);
+        busyMsg = runningLabel + " is currently running…";
+    }
     tooltip.className = isCmd ? (isBusy ? "command-tooltip command-tooltip-busy" : "command-tooltip") : "";
     tooltip.innerHTML = (isCmd ? "<div class='field-tooltip-category'>Command</div>" : "") +
                         (title ? "<div class='field-tooltip-title'>" + title + "</div>" : "") +
-                        "<div class='field-tooltip-body'>" + (isBusy ? "A command is already running…" : body) + "</div>" +
+                        "<div class='field-tooltip-body'>" + (isBusy ? busyMsg : body) + "</div>" +
                         (isCmd && !isBusy ? "<div class='field-tooltip-action'>Click to run</div>" : "");
     tooltip.style.display = "block";
     tooltip.style.transform = "translateX(-50%)";
@@ -352,13 +357,25 @@ document.addEventListener("DOMContentLoaded", function () {
 // ── Toast & status bar ──────────────────────────────
 
 var docsUrl = "https://noaa-ocs-hydrography.github.io/noaabathymetry-ui/docs/intro";
+var _docsLoaded = false;
+
+document.addEventListener("DOMContentLoaded", function() {
+    var frame = document.getElementById("docs-frame");
+    if (frame) {
+        frame.addEventListener("load", function() {
+            if (frame.src && frame.src !== "about:blank") _docsLoaded = true;
+        });
+    }
+});
 
 function switchView(view) {
     document.getElementById("btn-view-app").classList.toggle("active", view === "app");
     document.getElementById("btn-view-docs").classList.toggle("active", view === "docs");
     var overlay = document.getElementById("docs-overlay");
     if (view === "docs") {
-        document.getElementById("docs-frame").src = docsUrl;
+        if (!_docsLoaded) {
+            document.getElementById("docs-frame").src = docsUrl;
+        }
         overlay.style.display = "block";
     } else {
         overlay.style.display = "none";
@@ -383,14 +400,20 @@ function showToast(msg, cls) {
     container.insertBefore(toast, container.firstChild);
     // Wire up hover highlights for steps and hint
     var highlightEls = toast.querySelectorAll("[data-highlight]");
+    function _resolveHighlightAll(key) {
+        var t = _resolveHighlight(key);
+        return t ? (Array.isArray(t) ? t : [t]) : [];
+    }
     highlightEls.forEach(function (el) {
         el.addEventListener("mouseenter", function () {
-            var target = _resolveHighlight(el.getAttribute("data-highlight"));
-            if (target) target.classList.add("highlight-guide");
+            _resolveHighlightAll(el.getAttribute("data-highlight")).forEach(function (t) {
+                t.classList.add("highlight-guide");
+            });
         });
         el.addEventListener("mouseleave", function () {
-            var target = _resolveHighlight(el.getAttribute("data-highlight"));
-            if (target) target.classList.remove("highlight-guide");
+            _resolveHighlightAll(el.getAttribute("data-highlight")).forEach(function (t) {
+                t.classList.remove("highlight-guide");
+            });
         });
     });
     var duration = (typeof msg === "object" && msg.duration) ? msg.duration : (cls === "toast-welcome" ? 20000 : 6000);
@@ -406,6 +429,11 @@ function _resolveHighlight(id) {
     if (id === "nbs-source") {
         var rb = document.getElementById("btn-layer-remote");
         return rb ? rb.closest(".layers-item") : null;
+    }
+    if (id === "btn-fetch") {
+        var tab = document.querySelector('.tab[data-tab="fetch"]');
+        var btn = document.getElementById("btn-fetch");
+        return [tab, btn].filter(Boolean);
     }
     return document.getElementById(id);
 }
@@ -423,45 +451,243 @@ function setStatus(left) {
     document.getElementById("statusbar-left").textContent = left || "";
 }
 
+// ── Status bar context chips (last command, project tile count) ───
+var _lastCommandName = null;
+var _lastCommandTime = null;
+var _projectTileCount = null;
+var _statusTickTimer = null;
+
+function _formatRelativeTime(ts) {
+    var diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 30) return "just now";
+    if (diff < 60) return diff + "s ago";
+    if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+    return Math.floor(diff / 86400) + "d ago";
+}
+
+function _renderStatusChips() {
+    var lastEl = document.getElementById("status-last-command");
+    var lastDiv = document.getElementById("status-last-divider");
+    var tileEl = document.getElementById("status-tile-count");
+    var tileDiv = document.getElementById("status-tile-divider");
+    if (!lastEl) return;
+
+    if (_lastCommandName && _lastCommandTime) {
+        var label = _lastCommandName.charAt(0).toUpperCase() + _lastCommandName.slice(1);
+        lastEl.textContent = label + " · " + _formatRelativeTime(_lastCommandTime);
+        lastEl.hidden = false;
+        lastDiv.hidden = false;
+    } else {
+        lastEl.hidden = true;
+        lastDiv.hidden = true;
+    }
+
+    if (_projectTileCount !== null) {
+        tileEl.textContent = "Project: " + _projectTileCount + " tile" + (_projectTileCount === 1 ? "" : "s");
+        tileEl.hidden = false;
+        tileDiv.hidden = false;
+    } else {
+        tileEl.hidden = true;
+        tileDiv.hidden = true;
+    }
+}
+
+function _recordCommandCompletion(name) {
+    _lastCommandName = name;
+    _lastCommandTime = Date.now();
+    _renderStatusChips();
+    if (!_statusTickTimer) {
+        _statusTickTimer = setInterval(_renderStatusChips, 30000);
+    }
+}
+
+function setProjectTileCount(n) {
+    _projectTileCount = (typeof n === "number" && n >= 0) ? n : null;
+    _renderStatusChips();
+}
+
 // ── Log streaming & results ─────────────────────────
 
 var currentCommand = null;
 
 var logOpen = false;
 
-function showLog() {
-    if (!logOpen) {
-        logOpen = true;
-        document.getElementById("log-pane").style.display = "block";
-        document.getElementById("log-chevron").style.transform = "translate(-50%, calc(-50% - 2px)) rotate(90deg)";
-        document.getElementById("log-header").title = "Click to hide output";
+function setLogOpen(open) {
+    logOpen = open;
+    var header = document.getElementById("log-header");
+    var pane = document.getElementById("log-pane");
+    pane.classList.toggle("open", open);
+    header.classList.toggle("open", open);
+    header.title = open ? "Click to hide output" : "Click to show output";
+    if (!open) {
+        // Clear any inline height left by resize so it reopens at the default
+        pane.style.height = "";
     }
-    var hint = document.getElementById("log-hide-hint");
-    if (hint) hint.style.display = "none";
+}
+
+function showLog() {
+    if (!logOpen) setLogOpen(true);
 }
 
 function toggleLog() {
-    logOpen = !logOpen;
-    document.getElementById("log-pane").style.display = logOpen ? "block" : "none";
-    document.getElementById("log-chevron").style.transform = logOpen
-        ? "translate(-50%, calc(-50% - 2px)) rotate(90deg)"
-        : "translate(-50%, calc(-50% + 1px)) rotate(-90deg)";
-    document.getElementById("log-header").title = logOpen ? "Click to hide output" : "Click to show output";
-    var hint = document.getElementById("log-hide-hint");
-    if (hint && hint.style.display !== "none") {
-        hint.textContent = logOpen ? "(click to hide)" : "(click to show)";
-    }
+    setLogOpen(!logOpen);
 }
 
+function switchCommandTab(name) {
+    document.querySelectorAll(".tab-strip .tab").forEach(function(tab) {
+        tab.classList.toggle("active", tab.dataset.tab === name);
+    });
+    document.querySelectorAll(".tab-strip .run-btn").forEach(function(btn) {
+        btn.classList.toggle("active", btn.dataset.run === name);
+    });
+    document.querySelectorAll("#command-area .tab-panel").forEach(function(panel) {
+        panel.classList.toggle("active", panel.id === "tab-" + name);
+    });
+    _updateTabIndicator();
+}
+
+var _tabIndicatorCache = {};
+
+// Pre-measure each tab's final geometry (with .active applied, transitions off)
+// so the indicator can snap to the correct width on the very first frame.
+function _cacheTabIndicatorPositions() {
+    var tabs = document.querySelectorAll(".tab-strip .tab");
+    if (tabs.length === 0) return;
+    var strip = tabs[0].parentElement;
+    var originalActiveTab = document.querySelector(".tab-strip .tab.active");
+    var icons = document.querySelectorAll(".tab-strip .tab-icon");
+
+    // Freeze transitions during measurement so layout reads return final values
+    icons.forEach(function(i) { i.style.transition = "none"; });
+
+    tabs.forEach(function(activeTab) {
+        tabs.forEach(function(t) { t.classList.remove("active"); });
+        activeTab.classList.add("active");
+        void activeTab.offsetWidth; // force layout flush
+        var stripRect = strip.getBoundingClientRect();
+        var rect = activeTab.getBoundingClientRect();
+        _tabIndicatorCache[activeTab.dataset.tab] = {
+            left: rect.left - stripRect.left,
+            width: rect.width
+        };
+    });
+
+    // Restore original active state, then thaw transitions
+    tabs.forEach(function(t) { t.classList.remove("active"); });
+    if (originalActiveTab) originalActiveTab.classList.add("active");
+    void strip.offsetWidth; // flush so the restore is computed before transitions resume
+    icons.forEach(function(i) { i.style.transition = ""; });
+}
+
+function _updateTabIndicator() {
+    var indicator = document.querySelector(".tab-strip .tab-indicator");
+    var active = document.querySelector(".tab-strip .tab.active");
+    if (!indicator || !active) return;
+    var strip = active.parentElement;
+    var stripWidth = strip.getBoundingClientRect().width;
+
+    var newLeft, newRight;
+    var cached = _tabIndicatorCache[active.dataset.tab];
+    if (cached) {
+        newLeft = cached.left;
+        newRight = stripWidth - (cached.left + cached.width);
+    } else {
+        var stripRect = strip.getBoundingClientRect();
+        var rect = active.getBoundingClientRect();
+        newLeft = rect.left - stripRect.left;
+        newRight = stripRect.width - (rect.right - stripRect.left);
+    }
+
+    // Elastic stretch: leading edge moves faster, trailing edge follows.
+    // Direction determined by comparing new vs current left.
+    var currentLeft = parseFloat(indicator.style.left) || 0;
+    if (newLeft > currentLeft + 1) {
+        // Moving right: right edge leads, left edge trails
+        indicator.style.transition =
+            "left 0.32s cubic-bezier(0.55, 0, 0.45, 1), " +
+            "right 0.24s cubic-bezier(0.3, 0, 0.45, 1)";
+    } else if (newLeft < currentLeft - 1) {
+        // Moving left: left edge leads, right edge trails
+        indicator.style.transition =
+            "left 0.24s cubic-bezier(0.3, 0, 0.45, 1), " +
+            "right 0.32s cubic-bezier(0.55, 0, 0.45, 1)";
+    }
+    // No motion (or initial): keep prior transition (or none if not set)
+
+    indicator.style.left = newLeft + "px";
+    indicator.style.right = newRight + "px";
+    indicator.style.width = ""; // ensure width-based sizing doesn't override right
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    _cacheTabIndicatorPositions();
+    _updateTabIndicator();
+});
+
+window.addEventListener("resize", function() {
+    var indicator = document.querySelector(".tab-strip .tab-indicator");
+    if (indicator) indicator.style.transition = "none";
+    _cacheTabIndicatorPositions();
+    _updateTabIndicator();
+    setTimeout(function() {
+        if (indicator) indicator.style.transition = "";
+    }, 50);
+});
+
+var _autoScrollPaused = false;
+
+function _isLogAtBottom() {
+    var scroll = document.getElementById("log-scroll");
+    return (scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight) < 8;
+}
+
+function _scrollLogToBottomIfFollowing() {
+    if (_autoScrollPaused) return;
+    var scroll = document.getElementById("log-scroll");
+    scroll.scrollTop = scroll.scrollHeight;
+}
+
+function _onLogScroll() {
+    var paused = !_isLogAtBottom();
+    if (paused === _autoScrollPaused) return;
+    _autoScrollPaused = paused;
+    document.getElementById("log-pane").classList.toggle("scroll-paused", paused);
+}
+
+function jumpToLogBottom() {
+    var scroll = document.getElementById("log-scroll");
+    scroll.scrollTop = scroll.scrollHeight;
+    // _onLogScroll fires from the scroll event and clears the paused state
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    var scroll = document.getElementById("log-scroll");
+    if (scroll) scroll.addEventListener("scroll", _onLogScroll);
+});
+
 function appendLog(line) {
-    var pre = document.getElementById("results");
-    pre.textContent += line + "\n";
-    var pane = document.getElementById("log-pane");
-    pane.scrollTop = pane.scrollHeight;
+    var results = document.getElementById("results");
+    var lineEl = document.createElement("div");
+    lineEl.className = "log-line";
+    lineEl.textContent = line;
+    results.appendChild(lineEl);
+    _scrollLogToBottomIfFollowing();
 }
 
 function clearLog() {
     document.getElementById("results").textContent = "";
+    _autoScrollPaused = false;
+    document.getElementById("log-pane").classList.remove("scroll-paused");
+}
+
+function copyLog() {
+    var lines = document.querySelectorAll("#results .log-line");
+    var text = Array.from(lines).map(function(l) { return l.textContent; }).join("\n");
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function() {
+        if (typeof showToast === "function") showToast("Output copied");
+    });
 }
 
 function showError(msg) {
@@ -487,17 +713,66 @@ function onLogLine(line) {
 function updateProgress(line) {
     // Extract just the meaningful parts: "BlueTopo Fetch:  73% | 198/270 Tiles 00:10"
     var clean = line.replace(/\|[^|]*\|/, "|").replace(/[#█▏▎▍▌▋▊▉ ]+\|/, " | ");
-    var pre = document.getElementById("results");
-    var lines = pre.textContent.split("\n");
-    // Replace last line if it was also a progress line
-    if (lines.length > 1 && lines[lines.length - 2].indexOf("Tiles") >= 0) {
-        lines[lines.length - 2] = clean;
-        pre.textContent = lines.join("\n");
+    var results = document.getElementById("results");
+    var last = results.lastElementChild;
+    if (last && last.textContent.indexOf("Tiles") >= 0) {
+        last.textContent = clean;
+        _scrollLogToBottomIfFollowing();
     } else {
         appendLog(clean);
     }
+}
+
+// ── Log resize ───────────────────────────────────────
+var _logResize = null;
+
+function startLogResize(e) {
+    if (_logResize) _endLogResize();
+    e.preventDefault();
     var pane = document.getElementById("log-pane");
-    pane.scrollTop = pane.scrollHeight;
+    var handle = document.getElementById("log-toolbar");
+    _logResize = { y: e.clientY, height: pane.offsetHeight };
+    pane.style.transition = "none";
+    handle.classList.add("dragging");
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", _onLogResize);
+    document.addEventListener("mouseup", _endLogResize);
+}
+
+function _onLogResize(e) {
+    if (!_logResize) return;
+    var pane = document.getElementById("log-pane");
+    var delta = e.clientY - _logResize.y;
+    var newHeight = _logResize.height - delta;
+    var min = 30;
+    var max = window.innerHeight * 0.75;
+    newHeight = Math.max(min, Math.min(max, newHeight));
+    pane.style.height = newHeight + "px";
+}
+
+function _endLogResize() {
+    var pane = document.getElementById("log-pane");
+    var handle = document.getElementById("log-toolbar");
+    var collapseThreshold = 80;
+    handle.classList.remove("dragging");
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    document.removeEventListener("mousemove", _onLogResize);
+    document.removeEventListener("mouseup", _endLogResize);
+    _logResize = null;
+    if (pane.offsetHeight < collapseThreshold) {
+        // Animate height to 0, then collapse
+        pane.style.transition = "height 0.18s ease";
+        pane.style.height = "0px";
+        setTimeout(function() {
+            pane.style.transition = "";
+            setLogOpen(false);
+        }, 180);
+    } else {
+        // Reset transition for next time
+        setTimeout(function() { pane.style.transition = ""; }, 0);
+    }
 }
 
 function onCommandDone(data) {
@@ -505,7 +780,7 @@ function onCommandDone(data) {
     var fetched = false;
     try {
         if (data.ok) {
-            setStatus("Complete");
+            setStatus("Ready");
             var jump = ' <a class="toast-jump" onclick="openProjectFolder()">↗ Show in Explorer</a>';
             if (wasCommand === "fetch") {
                 showToast({ html: "Fetch complete" + jump, duration: 7000 });
@@ -522,18 +797,15 @@ function onCommandDone(data) {
             fetched = data.result && data.result.downloaded && data.result.downloaded.length > 0;
         } else {
             appendLog("Error: " + data.error);
-            setStatus("Failed");
+            setStatus("Ready");
         }
     } finally {
         var doneLabel = wasCommand ? "· " + wasCommand.charAt(0).toUpperCase() + wasCommand.slice(1) + " Done" : "";
         currentCommand = null;
         setButtonsDisabled(false);
+        if (wasCommand) _setCommandRunning(wasCommand, false);
         document.getElementById("log-command").textContent = doneLabel;
-        var hint = document.getElementById("log-hide-hint");
-        if (hint) {
-            hint.style.display = "inline";
-            hint.textContent = logOpen ? "(click to hide)" : "(click to show)";
-        }
+        if (wasCommand) _recordCommandCompletion(wasCommand);
     }
     // After currentCommand is cleared, refresh tracked layer
     if (fetched) {
@@ -576,7 +848,9 @@ function runCommand(name, fn) {
     clearLog();
     showLog();
     setButtonsDisabled(true);
-    setStatus(name.charAt(0).toUpperCase() + name.slice(1) + "...");
+    _setCommandRunning(name, true);
+    var runningLabels = { fetch: "Fetching...", mosaic: "Mosaicking...", export: "Exporting..." };
+    setStatus(runningLabels[name] || (name.charAt(0).toUpperCase() + name.slice(1) + "..."));
     var runLabel = name === "fetch" ? "Fetching..." : name === "mosaic" ? "Mosaicing..." : "Exporting...";
     document.getElementById("log-command").textContent = "· " + runLabel;
     try {
@@ -584,8 +858,17 @@ function runCommand(name, fn) {
     } catch (e) {
         currentCommand = null;
         setButtonsDisabled(false);
+        _setCommandRunning(name, false);
         showError(String(e));
     }
+}
+
+function _setCommandRunning(name, running) {
+    var btn = document.querySelector('.run-btn[data-run="' + name + '"]');
+    if (!btn) return;
+    btn.classList.toggle("running", running);
+    var label = btn.querySelector(".btn-label");
+    if (label) label.textContent = running ? "Running" : "Run";
 }
 
 // ── Geometry field autocomplete ──────────────────────
@@ -626,6 +909,9 @@ function onGeomInput() {
                 box.appendChild(div);
             });
             box.style.display = "block";
+            var tooltip = document.getElementById("field-tooltip");
+            if (tooltip) tooltip.style.display = "none";
+            fieldTooltipActive = null;
         });
     }, 150);
 }

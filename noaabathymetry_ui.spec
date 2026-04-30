@@ -5,6 +5,7 @@ macOS: .app bundle (looks like single file in Finder)
 Windows: single .exe
 """
 
+import glob
 import os
 import sys
 from pathlib import Path
@@ -27,14 +28,40 @@ else:
     proj_data = env / "share" / "proj"
     gdal_plugins = env / "lib" / "gdalplugins"
 
-datas = [
-    (str(web_dir / "index.html"), "src/web"),
-    (str(web_dir / "styles.css"), "src/web"),
-    (str(web_dir / "map.js"), "src/web"),
-    (str(web_dir / "panels.js"), "src/web"),
-    (str(web_dir / "bridge-ws.js"), "src/web"),
-    (str(web_dir / "NOAA-1.png"), "src/web"),
-    (str(web_dir / "NOAA-2.png"), "src/web"),
+# Explicit manifest of bundled web assets — reviewable at a glance.
+WEB_FILES = [
+    "index.html",
+    "styles.css",
+    "map.js",
+    "panels.js",
+    "bridge-ws.js",
+    "geom-parsers.js",
+    "NOAA-1.png",
+    "NOAA-2.png",
+]
+datas = [(str(web_dir / f), "src/web") for f in WEB_FILES]
+
+# Build-time guard: if anyone adds a new asset to src/web/ without declaring
+# it here, fail loudly instead of shipping a bundle that 404s on it.
+WEB_EXTS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".svg", ".ico",
+            ".woff", ".woff2", ".ttf", ".otf"}
+_actual = {os.path.basename(f) for f in glob.glob(str(web_dir / "*"))
+           if os.path.isfile(f)
+           and not os.path.basename(f).startswith(".")
+           and Path(f).suffix.lower() in WEB_EXTS}
+_undeclared = _actual - set(WEB_FILES)
+if _undeclared:
+    raise RuntimeError(
+        "noaabathymetry_ui.spec: src/web/ has files not declared in WEB_FILES: "
+        f"{sorted(_undeclared)}. Add them to the manifest."
+    )
+_missing = set(WEB_FILES) - _actual
+if _missing:
+    raise RuntimeError(
+        "noaabathymetry_ui.spec: WEB_FILES references files that don't exist in "
+        f"src/web/: {sorted(_missing)}."
+    )
+datas += [
     (str(gdal_data), "share/gdal"),
     (str(proj_data), "share/proj"),
 ]
@@ -51,7 +78,6 @@ datas += copy_metadata("noaabathymetry-ui")
 datas += copy_metadata("noaabathymetry")
 
 # Additional libraries needed by GDAL (SSL for HTTPS, HDF5 for S102)
-import glob
 if is_win:
     lib_dir = str(env / "Library" / "bin")
 else:

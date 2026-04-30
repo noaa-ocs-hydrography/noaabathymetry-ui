@@ -128,6 +128,7 @@ _SYNC_METHODS = {
     "get_cpu_count": set(),
     "browse_directory": set(),
     "browse_geometry": set(),
+    "read_geometry_file": {"path"},
     "open_folder": {"path"},
     "wms_query": {"lat", "lng"},
     "complete_path": {"partial"},

@@ -24,7 +24,7 @@ function _onBridgeReady() {
             _isReturningUser = true;
             toggleTrackedLayer();
         } else {
-            showToast({ icon: "▸", title: "Welcome", body: "<span class='welcome-subtitle'>Get started (hover the steps for help)</span><div class='welcome-steps'><div class='welcome-step' data-highlight='dir-input-wrap'>1. Type the folder path where you'd like your tiles<div class='welcome-step-note'>(e.g. ~/nyc. Fetch will create the folder for you if it doesn't exist.)</div></div><div class='welcome-step' data-highlight='draw-ctrl'>2. Draw your area of interest</div><div class='welcome-step' data-highlight='btn-fetch'>3. Click Fetch to download tiles</div></div><div class='welcome-hint' data-highlight='nbs-source'>Hint: Turn on the NBS Source layer in the bottom left to see NBS offerings.</div>", duration: 180000 }, "toast-welcome");
+            showToast({ icon: "▸", title: "Welcome", body: "<span class='welcome-subtitle'>Get started (hover the steps for help)</span><div class='welcome-steps'><div class='welcome-step' data-highlight='dir-input-wrap'>1. Type the folder path where you'd like your tiles<div class='welcome-step-note'>(e.g. ~/nyc. Fetch will create the folder for you if it doesn't exist.)</div></div><div class='welcome-step' data-highlight='aoi-add'>2. Add your area of interest</div><div class='welcome-step' data-highlight='btn-fetch'>3. Run the Fetch command to download tiles</div></div><div class='welcome-hint' data-highlight='nbs-source'>Hint: Turn on the NBS Source layer in the bottom left to see NBS offerings.</div>", duration: 180000 }, "toast-welcome");
         }
         _recentsLoaded = true;
         _maybeShowUpdateToast();
@@ -267,6 +267,13 @@ function updateOpenFolderBtn() {
 var fieldTooltipActive = null;
 
 function _renderFieldTooltip(container) {
+    // Suppress while the geometry list popover is open — the popover
+    // covers the same anchor and the tooltip becomes visual noise.
+    if (_geomListVisible && container.querySelector && container.querySelector("#opt-geometry")) {
+        var t = document.getElementById("field-tooltip");
+        if (t) t.style.display = "none";
+        return;
+    }
     var tooltip = document.getElementById("field-tooltip");
     var title = container.getAttribute("data-title") || "";
     var body = container.getAttribute("data-tooltip") || "";
@@ -425,6 +432,13 @@ function _resolveHighlight(id) {
     if (id === "draw-ctrl") {
         var btn = document.getElementById("draw-polygon-btn");
         return btn ? btn.closest(".maplibregl-ctrl-group") : null;
+    }
+    if (id === "aoi-add") {
+        var dbtn = document.getElementById("draw-polygon-btn");
+        var drawGroup = dbtn ? dbtn.closest(".maplibregl-ctrl-group") : null;
+        var aoiInput = document.getElementById("opt-geometry");
+        var aoiField = aoiInput ? aoiInput.closest(".commandbar-field") : null;
+        return [drawGroup, aoiField].filter(Boolean);
     }
     if (id === "nbs-source") {
         var rb = document.getElementById("btn-layer-remote");
@@ -871,117 +885,377 @@ function _setCommandRunning(name, running) {
     if (label) label.textContent = running ? "Running" : "Run";
 }
 
-// ── Geometry field autocomplete ──────────────────────
-
-function looksLikePath(val) {
-    if (!val) return false;
-    if (val.charAt(0) === "/" || val.charAt(0) === "\\") return true;
-    if (val.length >= 2 && val.charAt(1) === ":" && /[a-zA-Z]/.test(val.charAt(0))) return true;
-    if (val.charAt(0) === "~") return true;
-    return false;
-}
-
-var geomDebounce = null;
-
-function onGeomInput() {
-    clearTimeout(geomDebounce);
-    var val = document.getElementById("opt-geometry").value;
-    if (!looksLikePath(val) || !bridge) {
-        hideGeomSuggestions();
-        return;
-    }
-    geomDebounce = setTimeout(function () {
-        bridge.complete_path(val, function (response) {
-            var paths = JSON.parse(response);
-            var box = document.getElementById("geom-suggestions");
-            if (paths.length === 0) {
-                hideGeomSuggestions();
-                return;
-            }
-            box.innerHTML = "";
-            paths.forEach(function (p) {
-                var div = document.createElement("div");
-                div.textContent = p;
-                div.onclick = function () {
-                    document.getElementById("opt-geometry").value = p;
-                    hideGeomSuggestions();
-                };
-                box.appendChild(div);
-            });
-            box.style.display = "block";
-            var tooltip = document.getElementById("field-tooltip");
-            if (tooltip) tooltip.style.display = "none";
-            fieldTooltipActive = null;
-        });
-    }, 150);
-}
-
-var geomSelectedIndex = -1;
+// ── Geometry collection: Add buffer, list popover, file load ──
 
 document.getElementById("opt-geometry").addEventListener("keydown", function (e) {
-    var box = document.getElementById("geom-suggestions");
-    var items = box.querySelectorAll("div");
-    if (items.length === 0) return;
-
-    if (e.key === "ArrowDown") {
+    if (e.key === "Enter") {
         e.preventDefault();
-        geomSelectedIndex = Math.min(geomSelectedIndex + 1, items.length - 1);
-        updateGeomSelection(items);
-    } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        geomSelectedIndex = Math.max(geomSelectedIndex - 1, 0);
-        updateGeomSelection(items);
-    } else if (e.key === "Tab") {
-        if (items.length > 0) {
-            e.preventDefault();
-            geomSelectedIndex = (geomSelectedIndex + 1) % items.length;
-            updateGeomSelection(items);
-            this.value = items[geomSelectedIndex].textContent;
-            this.setSelectionRange(this.value.length, this.value.length);
-        }
-    } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (geomSelectedIndex >= 0 && geomSelectedIndex < items.length) {
-            this.value = items[geomSelectedIndex].textContent;
-            this.setSelectionRange(this.value.length, this.value.length);
-        }
-        hideGeomSuggestions();
+        addGeomFromBuffer();
     } else if (e.key === "Escape") {
-        hideGeomSuggestions();
+        hideGeomList();
     }
 });
 
-function updateGeomSelection(items) {
-    items.forEach(function (item, i) {
-        item.classList.toggle("active", i === geomSelectedIndex);
+document.getElementById("opt-geometry").addEventListener("input", function () {
+    var btn = document.getElementById("geom-add-btn");
+    if (!btn) return;
+    btn.classList.toggle("ready", this.value.trim().length > 0);
+});
+
+function addGeomFromBuffer() {
+    var input = document.getElementById("opt-geometry");
+    var val = input.value;
+    if (!val || !val.trim()) return;
+    if (typeof parseGeomString !== "function") {
+        showToast("Geometry parser not available");
+        return;
+    }
+    var result = parseGeomString(val);
+    if (!result.ok) {
+        showToast(result.error || "Could not parse geometry");
+        return;
+    }
+    var label;
+    if (result.kind === "BBOX") label = "BBOX";
+    else if (result.kind === "WKT") label = "WKT";
+    else label = "GeoJSON";
+    result.features.forEach(function (f, i) {
+        var lbl = result.features.length > 1 ? label + " " + (i + 1) : label;
+        addFeature(f.geometry, "parsed", lbl);
     });
-    if (geomSelectedIndex >= 0 && items[geomSelectedIndex]) {
-        items[geomSelectedIndex].scrollIntoView({ block: "nearest" });
-    }
+    input.value = "";
+    var btn = document.getElementById("geom-add-btn");
+    if (btn) btn.classList.remove("ready");
 }
-
-function hideGeomSuggestions() {
-    document.getElementById("geom-suggestions").style.display = "none";
-    geomSelectedIndex = -1;
-}
-
-document.getElementById("opt-geometry").addEventListener("blur", function () {
-    setTimeout(hideGeomSuggestions, 150);
-});
 
 function browseGeometry() {
     if (!bridge) return;
     bridge.browse_geometry(function (path) {
-        if (path) {
-            var input = document.getElementById("opt-geometry");
-            input.value = path;
-            input.blur();
-            // Scroll to show end of path
-            input.setSelectionRange(path.length, path.length);
-            input.scrollLeft = input.scrollWidth;
-        }
+        if (!path) return;
+        bridge.read_geometry_file(path, function (response) {
+            var data;
+            try {
+                data = JSON.parse(response);
+            } catch (e) {
+                showToast("Could not read geometry file");
+                return;
+            }
+            if (data.error) {
+                showToast(data.error);
+                return;
+            }
+            if (!data.features || data.features.length === 0) {
+                showToast("No features in file");
+                return;
+            }
+            var basename = path.split(/[\\/]/).pop();
+            data.features.forEach(function (f, i) {
+                if (!f.geometry) return;
+                var label = basename;
+                if (data.features.length > 1) {
+                    label = basename + " : " + (i + 1);
+                }
+                // MultiPolygon split for editing simplicity.
+                if (f.geometry.type === "MultiPolygon") {
+                    f.geometry.coordinates.forEach(function (poly, j) {
+                        var sub = label + (f.geometry.coordinates.length > 1 ? "." + (j + 1) : "");
+                        addFeature({ type: "Polygon", coordinates: poly }, "loaded", sub);
+                    });
+                } else {
+                    addFeature(f.geometry, "loaded", label);
+                }
+            });
+        });
     });
 }
+
+// ── Geometry list popover ────────────────────────────
+
+var _geomListVisible = false;
+
+function toggleGeomList(e) {
+    if (e) e.stopPropagation();
+    if (_geomListVisible) hideGeomList();
+    else showGeomList();
+}
+
+function showGeomList() {
+    if (typeof geomCollection === "undefined") return;
+    var pop = document.getElementById("geom-list-popover");
+    if (!pop) return;
+    renderGeomList();
+    pop.style.display = "block";
+    positionGeomList();
+    _geomListVisible = true;
+    // Hide any field tooltip that might overlap.
+    var tooltip = document.getElementById("field-tooltip");
+    if (tooltip) tooltip.style.display = "none";
+}
+
+function positionGeomList() {
+    var pop = document.getElementById("geom-list-popover");
+    var anchor = document.getElementById("opt-geometry");
+    if (!pop || !anchor) return;
+    var rect = anchor.getBoundingClientRect();
+    pop.style.left = Math.round(rect.left) + "px";
+    pop.style.bottom = Math.round(window.innerHeight - rect.top + 6) + "px";
+    pop.style.top = "auto";
+}
+
+function hideGeomList() {
+    var pop = document.getElementById("geom-list-popover");
+    if (pop) pop.style.display = "none";
+    _geomListVisible = false;
+}
+
+window.addEventListener("resize", function () {
+    if (_geomListVisible) positionGeomList();
+});
+
+// ── Floating geometry panel (always-visible map widget) ──
+
+function _createGeomMapPanel() {
+    if (document.getElementById("geom-map-panel")) return;
+    var panel = document.createElement("div");
+    panel.id = "geom-map-panel";
+    panel.className = "geom-map-panel";
+    panel.style.display = "none";
+    document.getElementById("map").appendChild(panel);
+}
+
+var _geomPanelCollapsed = false;
+
+function toggleGeomMapPanel() {
+    _geomPanelCollapsed = !_geomPanelCollapsed;
+    renderGeomMapPanel();
+}
+
+function renderGeomMapPanel() {
+    _createGeomMapPanel();
+    var panel = document.getElementById("geom-map-panel");
+    if (!panel) return;
+    if (typeof geomCollection === "undefined" || geomCollection.length === 0) {
+        if (panel.style.display === "none") {
+            panel.innerHTML = "";
+            return;
+        }
+        // Animate out before hiding so removing the last geometry has feedback.
+        panel.classList.remove("out");
+        void panel.offsetWidth;
+        panel.classList.add("out");
+        panel.addEventListener("animationend", function onPanelOut() {
+            if (geomCollection.length === 0) {
+                panel.style.display = "none";
+                panel.classList.remove("out");
+                panel.innerHTML = "";
+            }
+        }, { once: true });
+        return;
+    }
+    panel.style.display = "";
+    panel.classList.remove("out");
+    panel.classList.toggle("collapsed", _geomPanelCollapsed);
+    // Preserve scroll position across re-renders.
+    var prevBody = document.getElementById("geom-map-panel-body");
+    var prevScroll = prevBody ? prevBody.scrollTop : 0;
+    var chevronTitle = _geomPanelCollapsed ? "Expand" : "Collapse";
+    var html = '<div class="geom-map-panel-header">' +
+        '<span class="geom-map-panel-title">Geometries</span>' +
+        '<span class="geom-map-panel-count">' + geomCollection.length + '</span>' +
+        '<span class="geom-map-panel-actions">' +
+        '<button class="geom-list-clear" type="button" onclick="clearAllGeometries()">Clear all</button>' +
+        '<button class="geom-map-panel-collapse" type="button" title="' + chevronTitle + '" onclick="toggleGeomMapPanel()" aria-label="' + chevronTitle + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>' +
+        '</button>' +
+        '</span>' +
+        '</div>' +
+        '<div class="geom-map-panel-body" id="geom-map-panel-body"></div>';
+    panel.innerHTML = html;
+    var body = document.getElementById("geom-map-panel-body");
+    if (_geomPanelCollapsed) {
+        // Skip rendering rows entirely; keep the body element for layout but
+        // hide it. Cue overlay is also skipped below.
+        return;
+    }
+    var visibleRows = 4;
+    var cue = null;
+    if (geomCollection.length > visibleRows) {
+        cue = document.createElement("div");
+        cue.className = "geom-map-panel-cue";
+        cue.textContent = "↓ more";
+        panel.appendChild(cue);
+        var updateCue = function () {
+            if (!cue) return;
+            var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 2;
+            cue.classList.toggle("at-bottom", atBottom);
+        };
+        body.addEventListener("scroll", updateCue);
+        // run after layout so scrollHeight is final
+        requestAnimationFrame(updateCue);
+    }
+    geomCollection.forEach(function (entry) {
+        var row = document.createElement("div");
+        var cls = "geom-row";
+        if (entry.id === selectedFeatureId) cls += " selected";
+        if (typeof _lastAddedId !== "undefined" && entry.id === _lastAddedId) cls += " pop-in";
+        row.className = cls;
+        row.dataset.id = entry.id;
+        var dot = '<span class="geom-dot geom-dot-' + entry.source + '"></span>';
+        var label = '<span class="geom-label" title="' + escapeAttr(entry.label) + '">' + escapeText(entry.label) + '</span>';
+        var badge = '<span class="geom-badge">' + entry.source + '</span>';
+        var rm = '<button class="geom-row-rm" type="button" title="Remove">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6M10 11v6M14 11v6"/>' +
+            '</svg></button>';
+        row.innerHTML = dot + label + badge + rm;
+        row.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (ev.target && ev.target.closest && ev.target.closest(".geom-row-rm")) {
+                removeFeature(entry.id);
+                return;
+            }
+            selectFeature(entry.id);
+            flyToGeometry(entry.geometry);
+            renderGeomMapPanel();
+        });
+        body.appendChild(row);
+    });
+    body.scrollTop = prevScroll;
+}
+
+function renderGeomList() {
+    var pop = document.getElementById("geom-list-popover");
+    if (!pop) return;
+    pop.innerHTML = "";
+    if (!geomCollection.length) {
+        var empty = document.createElement("div");
+        empty.className = "geom-list-empty";
+        empty.textContent = "No geometries — Fetch will download all tiles.";
+        pop.appendChild(empty);
+        return;
+    }
+    var header = document.createElement("div");
+    header.className = "geom-list-header";
+    header.innerHTML = '<span>' + geomCollection.length + ' geometr' + (geomCollection.length === 1 ? 'y' : 'ies') + '</span>' +
+        '<span class="geom-list-actions">' +
+        '<button class="geom-list-clear" type="button" onclick="clearAllGeometries()">Clear all</button>' +
+        '<button class="geom-list-clear" type="button" onclick="hideGeomList()" title="Esc">Close</button>' +
+        '</span>';
+    pop.appendChild(header);
+    geomCollection.forEach(function (entry) {
+        var row = document.createElement("div");
+        var cls = "geom-row";
+        if (entry.id === selectedFeatureId) cls += " selected";
+        if (typeof _lastAddedId !== "undefined" && entry.id === _lastAddedId) cls += " pop-in";
+        row.className = cls;
+        row.dataset.id = entry.id;
+        var dot = '<span class="geom-dot geom-dot-' + entry.source + '"></span>';
+        var label = '<span class="geom-label" title="' + escapeAttr(entry.label) + '">' + escapeText(entry.label) + '</span>';
+        var badge = '<span class="geom-badge">' + entry.source + '</span>';
+        var rm = '<button class="geom-row-rm" type="button" title="Remove">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6M10 11v6M14 11v6"/>' +
+            '</svg></button>';
+        row.innerHTML = dot + label + badge + rm;
+        row.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (ev.target && ev.target.closest && ev.target.closest(".geom-row-rm")) {
+                removeFeature(entry.id);
+                return;
+            }
+            selectFeature(entry.id);
+            flyToGeometry(entry.geometry);
+            renderGeomList();
+        });
+        pop.appendChild(row);
+    });
+}
+
+function escapeText(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+}
+function escapeAttr(s) {
+    return escapeText(s).replace(/"/g, "&quot;");
+}
+
+function flyToGeometry(geom) {
+    if (!geom) return;
+    var coords = [];
+    if (geom.type === "Polygon") coords = geom.coordinates[0] || [];
+    else if (geom.type === "MultiPolygon") coords = (geom.coordinates[0] || [])[0] || [];
+    else if (geom.type === "Point") coords = [geom.coordinates];
+    else if (geom.type === "LineString") coords = geom.coordinates;
+    if (!coords.length) return;
+    var bounds = new maplibregl.LngLatBounds();
+    coords.forEach(function (c) { bounds.extend(c); });
+    if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 500 });
+}
+
+// Hook called by map.js whenever the collection mutates.
+var _geomLastCount = 0;
+function onGeomCollectionChanged() {
+    var n = geomCollection.length;
+    var chip = document.getElementById("geom-count-chip");
+    if (chip) {
+        if (n > 0) {
+            chip.textContent = String(n);
+            chip.title = n + (n === 1 ? " geometry" : " geometries") + " — click to view";
+            chip.style.display = "";
+            chip.classList.remove("out");
+            if (n !== _geomLastCount) {
+                chip.classList.remove("pulse");
+                // re-trigger animation
+                void chip.offsetWidth;
+                chip.classList.add("pulse");
+            }
+        } else if (_geomLastCount > 0) {
+            chip.classList.remove("pulse");
+            void chip.offsetWidth;
+            chip.classList.add("out");
+            chip.addEventListener("animationend", function onChipOut() {
+                if (geomCollection.length === 0) {
+                    chip.style.display = "none";
+                    chip.classList.remove("out");
+                }
+            }, { once: true });
+            hideGeomList();
+        } else {
+            chip.style.display = "none";
+        }
+    }
+    var statusChip = document.getElementById("status-geom-count");
+    var statusDiv = document.getElementById("status-geom-divider");
+    if (statusChip) {
+        if (n > 0) {
+            statusChip.textContent = n + " geometr" + (n === 1 ? "y" : "ies");
+            statusChip.hidden = false;
+            if (statusDiv) statusDiv.hidden = false;
+        } else {
+            statusChip.hidden = true;
+            if (statusDiv) statusDiv.hidden = true;
+        }
+    }
+    if (_geomListVisible) renderGeomList();
+    if (typeof renderGeomMapPanel === "function") renderGeomMapPanel();
+    _geomLastCount = n;
+    if (typeof _lastAddedId !== "undefined") _lastAddedId = null;
+}
+
+document.addEventListener("click", function (e) {
+    if (!_geomListVisible) return;
+    if (e.target.closest("#geom-list-popover")) return;
+    if (e.target.closest("#geom-count-chip")) return;
+    hideGeomList();
+});
+
+document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || !_geomListVisible) return;
+    var t = e.target;
+    if (t && (t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    hideGeomList();
+});
 
 // Numeric-only inputs — strip non-numeric on input, clamp on blur
 document.getElementById("opt-resolution").addEventListener("input", function () {
@@ -1015,7 +1289,8 @@ function getMosaicOptions() {
 
 function runFetch() {
     runCommand("fetch", function (dir) {
-        var geom = document.getElementById("opt-geometry").value || "";
+        var fc = (typeof getFeatureCollection === "function") ? getFeatureCollection() : null;
+        var geom = (fc && fc.features && fc.features.length) ? JSON.stringify(fc) : "";
         var resFilter = document.getElementById("opt-fetch-resolution").value || "";
         bridge.fetch(dir, geom, getSource(), resFilter);
     });

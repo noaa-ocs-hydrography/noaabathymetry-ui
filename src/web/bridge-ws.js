@@ -74,6 +74,7 @@ var bridge = {
     save_basemap: function (name) { this._call("save_basemap", { basemap_name: name }); },
     browse_directory: function (cb) { this._call("browse_directory", {}, cb); },
     browse_geometry: function (cb) { this._call("browse_geometry", {}, cb); },
+    read_geometry_file: function (path, cb) { this._call("read_geometry_file", { path: path }, cb); },
     complete_path: function (partial, cb) { this._call("complete_path", { partial: partial }, cb); },
     load_remote_layer: function (source) { this._call("load_remote_layer", { data_source: source }); },
     load_tracked_layer: function (dir, source) { this._call("load_tracked_layer", { project_dir: dir, data_source: source }); },

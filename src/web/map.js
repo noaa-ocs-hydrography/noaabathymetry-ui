@@ -73,10 +73,33 @@ function setBasemap(idx) {
 }
 
 // ── Draw tools (custom polygon drawing) ──────────────
+//
+// State model: a collection of features (drawn / loaded / parsed) lives in
+// `geomCollection`. The map renders the entire collection from one source
+// (draw-polygon). One feature can be `selected` for vertex editing — its
+// vertices are rendered into draw-points, and `drawPoints` holds the
+// working copy of its outer ring (without the closing duplicate).
+// In-progress drawing (polygon-being-clicked or rectangle-being-dragged)
+// renders into a separate `draw-inprogress` source so committed features
+// stay visible underneath.
 
-var currentGeometry = null;
+var geomCollection = [];
+var geomIdCounter = 0;
+var selectedFeatureId = null;
 var drawingMode = false;
 var drawPoints = [];
+
+var DRAW_FILL_OPACITY = 0.15;
+var DRAW_FILL_OPACITY_SELECTED = 0.3;
+
+var FILL_COLOR_EXPR = ["match", ["get", "source"],
+    "loaded", "rgba(110,200,140,1)",
+    "parsed", "rgba(180,140,230,1)",
+    /* drawn / default */ "rgba(100,140,255,1)"];
+var LINE_COLOR_EXPR = ["match", ["get", "source"],
+    "loaded", "rgba(110,200,140,0.85)",
+    "parsed", "rgba(180,140,230,0.85)",
+    "rgba(100,140,255,0.85)"];
 
 var DrawControl = {
     onAdd: function () {
@@ -85,80 +108,317 @@ var DrawControl = {
         div.innerHTML =
             '<button id="draw-polygon-btn" class="draw-btn" title="Draw polygon" onclick="startDrawing()">⬠</button>' +
             '<button id="draw-rect-btn" class="draw-btn" title="Draw rectangle" onclick="startRectangle()">▭</button>' +
-            '<button id="draw-clear-btn" class="draw-btn" title="Clear geometry" onclick="clearDrawing()">✕</button>';
+            '<button id="draw-clear-btn" class="draw-btn" title="Clear all geometries" onclick="clearAllGeometries()">✕</button>';
         return div;
     },
     onRemove: function () {}
 };
 map.addControl(DrawControl, "top-left");
 
-var finishBtn = document.createElement("button");
-finishBtn.id = "draw-finish-btn";
-finishBtn.className = "draw-finish-btn";
-finishBtn.textContent = "Finish";
-finishBtn.onclick = function () { finishDrawing(); };
-document.getElementById("map").appendChild(finishBtn);
+var POLY_ICON = "⬠";
+var POLY_FINISH_ICON = "✓";
+var POLY_CANCEL_ICON = "✕";
+
+function _updatePolygonBtnState() {
+    var btn = document.getElementById("draw-polygon-btn");
+    if (!btn) return;
+    if (!drawingMode) {
+        btn.textContent = POLY_ICON;
+        btn.title = "Draw polygon";
+        btn.classList.remove("draw-btn-finish", "draw-btn-cancel");
+    } else if (drawPoints.length >= 3) {
+        btn.textContent = POLY_FINISH_ICON;
+        btn.title = "Finish polygon";
+        btn.classList.add("draw-btn-finish");
+        btn.classList.remove("draw-btn-cancel");
+    } else {
+        btn.textContent = POLY_CANCEL_ICON;
+        btn.title = "Cancel polygon";
+        btn.classList.add("draw-btn-cancel");
+        btn.classList.remove("draw-btn-finish");
+    }
+}
+
+// ── Collection helpers ───────────────────────────────
+
+function _polyCount() {
+    var n = 0;
+    for (var i = 0; i < geomCollection.length; i++) {
+        if (geomCollection[i].source === "drawn") n++;
+    }
+    return n;
+}
+
+var _lastAddedId = null;
+
+function addFeature(geom, source, label) {
+    if (!geom || !geom.type) return null;
+    if (!label) {
+        if (source === "drawn") label = "Polygon " + (_polyCount() + 1);
+        else if (source === "parsed") label = "Geometry " + (geomCollection.length + 1);
+        else label = "Feature " + (geomCollection.length + 1);
+    }
+    var entry = {
+        id: "g" + (++geomIdCounter),
+        source: source || "drawn",
+        label: label,
+        geometry: geom,
+    };
+    geomCollection.push(entry);
+    _lastAddedId = entry.id;
+    syncCollectionToMap();
+    if (typeof onGeomCollectionChanged === "function") onGeomCollectionChanged();
+    return entry.id;
+}
+
+function removeFeature(id) {
+    var idx = -1;
+    for (var i = 0; i < geomCollection.length; i++) {
+        if (geomCollection[i].id === id) { idx = i; break; }
+    }
+    if (idx < 0) return;
+    if (selectedFeatureId === id) deselectFeature();
+    geomCollection.splice(idx, 1);
+    syncCollectionToMap();
+    if (typeof onGeomCollectionChanged === "function") onGeomCollectionChanged();
+}
+
+function clearAllGeometries() {
+    if (drawingMode) cancelDrawing();
+    if (rectMode) cancelRect();
+    deselectFeature();
+    geomCollection = [];
+    syncCollectionToMap();
+    if (typeof onGeomCollectionChanged === "function") onGeomCollectionChanged();
+}
+
+function getFeatureCollection() {
+    return {
+        type: "FeatureCollection",
+        features: geomCollection.map(function (e) {
+            return {
+                type: "Feature",
+                geometry: e.geometry,
+                properties: { id: e.id, source: e.source, label: e.label },
+            };
+        }),
+    };
+}
+
+function getGeomEntry(id) {
+    for (var i = 0; i < geomCollection.length; i++) {
+        if (geomCollection[i].id === id) return geomCollection[i];
+    }
+    return null;
+}
+
+function syncCollectionToMap() {
+    if (!map.getSource("draw-polygon")) return;
+    var feats = geomCollection.map(function (e) {
+        return {
+            type: "Feature",
+            geometry: e.geometry,
+            properties: {
+                id: e.id,
+                source: e.source,
+                selected: e.id === selectedFeatureId,
+            },
+        };
+    });
+    map.getSource("draw-polygon").setData({ type: "FeatureCollection", features: feats });
+    syncSelectedVertices();
+}
+
+function syncSelectedVertices() {
+    if (!map.getSource("draw-points")) return;
+    var pts = [];
+    if (selectedFeatureId && drawPoints.length) {
+        for (var i = 0; i < drawPoints.length; i++) {
+            pts.push({ type: "Feature", geometry: { type: "Point", coordinates: drawPoints[i] }, properties: { idx: i } });
+        }
+    }
+    map.getSource("draw-points").setData({ type: "FeatureCollection", features: pts });
+}
+
+function selectFeature(id) {
+    // Don't let selection clobber an in-progress draw/rect — bail to a clean
+    // state first so drawPoints isn't repurposed mid-gesture.
+    if (drawingMode) cancelDrawing();
+    if (rectMode) cancelRect();
+    var entry = getGeomEntry(id);
+    if (!entry || entry.geometry.type !== "Polygon") {
+        // only Polygons editable via vertex drag; just highlight if not editable
+        selectedFeatureId = entry ? id : null;
+        drawPoints = [];
+        syncCollectionToMap();
+        return;
+    }
+    selectedFeatureId = id;
+    var ring = entry.geometry.coordinates[0] || [];
+    var trimEnd = ring.length > 1 && coordsEqual(ring[0], ring[ring.length - 1]) ? ring.length - 1 : ring.length;
+    drawPoints = ring.slice(0, trimEnd);
+    syncCollectionToMap();
+}
+
+function deselectFeature() {
+    if (!selectedFeatureId) return;
+    selectedFeatureId = null;
+    drawPoints = [];
+    syncCollectionToMap();
+}
+
+function coordsEqual(a, b) {
+    return a && b && Math.abs(a[0] - b[0]) < 1e-12 && Math.abs(a[1] - b[1]) < 1e-12;
+}
+
+function commitSelectedFromDrawPoints() {
+    var entry = getGeomEntry(selectedFeatureId);
+    if (!entry || drawPoints.length < 3) return;
+    var coords = drawPoints.slice();
+    coords.push(coords[0]);
+    entry.geometry = { type: "Polygon", coordinates: [coords] };
+    syncCollectionToMap();
+}
+
+// ── Fill flash on commit ─────────────────────────────
+
+var _traceToken = 0;
+
+function animateOutlineTrace(geom) {
+    if (!geom || geom.type !== "Polygon") return;
+    var ring = geom.coordinates && geom.coordinates[0];
+    if (!ring || ring.length < 4) return;
+
+    var FILL_ID = "draw-trace-fill";
+    var SOURCE_ID = "draw-trace";
+    var token = ++_traceToken;
+    if (map.getLayer(FILL_ID)) map.removeLayer(FILL_ID);
+    if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+
+    map.addSource(SOURCE_ID, {
+        type: "geojson",
+        data: { type: "Feature", geometry: geom, properties: {} },
+    });
+    map.addLayer({
+        id: FILL_ID,
+        type: "fill",
+        source: SOURCE_ID,
+        paint: { "fill-color": "rgba(95,235,155,1)", "fill-opacity": 0 },
+    });
+    raiseDrawLayers();
+    if (map.getLayer(FILL_ID)) map.moveLayer(FILL_ID);
+
+    var DURATION = 700;
+    var FILL_PEAK = 0.22;
+    var startTime = performance.now();
+
+    function tick(now) {
+        if (token !== _traceToken) return;
+        if (!map.getLayer(FILL_ID)) return;
+        var t = Math.min(1, (now - startTime) / DURATION);
+        // Ramp up to peak around t=0.35, ease back to 0.
+        var fillT = t < 0.35 ? (t / 0.35) : Math.max(0, 1 - (t - 0.35) / 0.65);
+        map.setPaintProperty(FILL_ID, "fill-opacity", FILL_PEAK * fillT);
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            if (map.getLayer(FILL_ID)) map.removeLayer(FILL_ID);
+            if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+// ── In-progress draw rendering (polygon being clicked) ───
+
+function syncInProgress() {
+    if (!map.getSource("draw-inprogress")) return;
+    var features = [];
+    if (drawingMode) {
+        if (drawPoints.length >= 3) {
+            var coords = drawPoints.slice();
+            coords.push(coords[0]);
+            features.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [coords] }, properties: {} });
+        } else if (drawPoints.length >= 2) {
+            features.push({ type: "Feature", geometry: { type: "LineString", coordinates: drawPoints }, properties: {} });
+        }
+    }
+    map.getSource("draw-inprogress").setData({ type: "FeatureCollection", features: features });
+    if (drawingMode) {
+        // Show the clicked vertices as the user builds the polygon.
+        var pts = drawPoints.map(function (p, i) {
+            return { type: "Feature", geometry: { type: "Point", coordinates: p }, properties: { idx: i } };
+        });
+        if (map.getSource("draw-points")) {
+            map.getSource("draw-points").setData({ type: "FeatureCollection", features: pts });
+        }
+    }
+}
+
+// ── Polygon drawing ──────────────────────────────────
 
 function startDrawing() {
     if (drawingMode) {
-        finishDrawing();
+        if (drawPoints.length >= 3) finishDrawing();
+        else cancelDrawing();
         return;
     }
     if (rectMode) cancelRect();
+    deselectFeature();
     drawingMode = true;
     drawPoints = [];
     map.dragPan.disable();
     map.doubleClickZoom.disable();
     map.getCanvas().style.setProperty("cursor", "crosshair", "important");
     document.getElementById("draw-polygon-btn").classList.add("active");
-    document.getElementById("draw-finish-btn").classList.add("visible");
-    // Clear previous
-    if (map.getSource("draw-polygon")) map.getSource("draw-polygon").setData({ type: "FeatureCollection", features: [] });
-    if (map.getSource("draw-points")) map.getSource("draw-points").setData({ type: "FeatureCollection", features: [] });
+    _updatePolygonBtnState();
+    syncInProgress();
+}
+
+function cancelDrawing() {
+    drawingMode = false;
+    drawPoints = [];
+    map.dragPan.enable();
+    map.doubleClickZoom.enable();
+    map.getCanvas().style.setProperty("cursor", "", "");
+    document.getElementById("draw-polygon-btn").classList.remove("active");
+    _updatePolygonBtnState();
+    syncInProgress();
+    syncSelectedVertices();
 }
 
 function finishDrawing() {
+    if (!drawingMode) return;
     drawingMode = false;
     map.dragPan.enable();
     map.doubleClickZoom.enable();
     map.getCanvas().style.setProperty("cursor", "", "");
-    document.getElementById("draw-polygon-btn").classList.remove("active");
-    var finishEl = document.getElementById("draw-finish-btn");
-    if (drawPoints.length >= 3) {
-        finishEl.textContent = "✓";
-        finishEl.classList.add("success");
-        setTimeout(function () {
-            finishEl.classList.remove("visible", "success");
-            finishEl.textContent = "Finish";
-        }, 500);
-    } else {
-        finishEl.classList.remove("visible");
-    }
+    var btn = document.getElementById("draw-polygon-btn");
+    btn.classList.remove("active");
     if (drawPoints.length >= 3) {
         var coords = drawPoints.slice();
-        coords.push(coords[0]); // close the ring
+        coords.push(coords[0]);
         var geom = { type: "Polygon", coordinates: [coords] };
-        currentGeometry = JSON.stringify(geom);
-        var input = document.getElementById("opt-geometry");
-        input.value = currentGeometry;
-        input.scrollLeft = input.scrollWidth;
-        updateDrawLayer();
+        drawPoints = [];
+        syncInProgress();
+        syncSelectedVertices();
+        addFeature(geom, "drawn");
+        animateOutlineTrace(geom);
+        // Brief success animation on the polygon button before reverting to neutral.
+        btn.classList.remove("draw-btn-finish", "draw-btn-cancel");
+        btn.classList.add("draw-btn-success");
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12 l4 4 l10-10"/></svg>';
+        setTimeout(function () {
+            btn.classList.remove("draw-btn-success");
+            // textContent (set by _updatePolygonBtnState) replaces the SVG.
+            _updatePolygonBtnState();
+        }, 700);
+    } else {
+        drawPoints = [];
+        syncInProgress();
+        syncSelectedVertices();
+        _updatePolygonBtnState();
     }
-}
-
-function clearDrawing() {
-    drawingMode = false;
-    drawPoints = [];
-    currentGeometry = null;
-    map.dragPan.enable();
-    map.doubleClickZoom.enable();
-    map.getCanvas().style.setProperty("cursor", "", "");
-    document.getElementById("draw-polygon-btn").classList.remove("active");
-    document.getElementById("draw-rect-btn").classList.remove("active");
-    document.getElementById("draw-finish-btn").classList.remove("visible");
-    document.getElementById("opt-geometry").value = "";
-    if (map.getSource("draw-polygon")) map.getSource("draw-polygon").setData({ type: "FeatureCollection", features: [] });
-    if (map.getSource("draw-points")) map.getSource("draw-points").setData({ type: "FeatureCollection", features: [] });
 }
 
 // ── Rectangle drawing (drag) ─────────────────────────
@@ -172,6 +432,7 @@ function startRectangle() {
         return;
     }
     if (drawingMode) finishDrawing();
+    deselectFeature();
     rectMode = true;
     rectStart = null;
     map.dragPan.disable();
@@ -185,6 +446,9 @@ function cancelRect() {
     map.dragPan.enable();
     map.getCanvas().style.setProperty("cursor", "", "");
     document.getElementById("draw-rect-btn").classList.remove("active");
+    if (map.getSource("draw-inprogress")) {
+        map.getSource("draw-inprogress").setData({ type: "FeatureCollection", features: [] });
+    }
 }
 
 function finishRect(start, end) {
@@ -200,13 +464,12 @@ function finishRect(start, end) {
         [start.lng, end.lat],
         [start.lng, start.lat],
     ];
+    if (map.getSource("draw-inprogress")) {
+        map.getSource("draw-inprogress").setData({ type: "FeatureCollection", features: [] });
+    }
     var geom = { type: "Polygon", coordinates: [coords] };
-    currentGeometry = JSON.stringify(geom);
-    var input = document.getElementById("opt-geometry");
-    input.value = currentGeometry;
-    input.scrollLeft = input.scrollWidth;
-    drawPoints = coords.slice(0, 4);
-    updateDrawLayer();
+    addFeature(geom, "drawn");
+    animateOutlineTrace(geom);
 }
 
 map.on("mousedown", function (e) {
@@ -221,8 +484,8 @@ map.on("mousemove", function (e) {
     var coords = [
         [s.lng, s.lat], [c.lng, s.lat], [c.lng, c.lat], [s.lng, c.lat], [s.lng, s.lat]
     ];
-    if (map.getSource("draw-polygon")) {
-        map.getSource("draw-polygon").setData({
+    if (map.getSource("draw-inprogress")) {
+        map.getSource("draw-inprogress").setData({
             type: "FeatureCollection",
             features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: [coords] }, properties: {} }]
         });
@@ -239,37 +502,44 @@ map.on("mouseup", function (e) {
 });
 
 function raiseDrawLayers() {
-    ["draw-fill", "draw-line", "draw-vertices"].forEach(function (id) {
+    ["draw-fill", "draw-line", "draw-inprogress-fill", "draw-inprogress-line", "draw-vertices"].forEach(function (id) {
         if (map.getLayer(id)) map.moveLayer(id);
     });
-}
-
-function updateDrawLayer() {
-    var features = [];
-    if (drawPoints.length >= 3) {
-        var coords = drawPoints.slice();
-        coords.push(coords[0]);
-        features.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [coords] }, properties: {} });
-    } else if (drawPoints.length >= 2) {
-        features.push({ type: "Feature", geometry: { type: "LineString", coordinates: drawPoints }, properties: {} });
-    }
-    if (map.getSource("draw-polygon")) {
-        map.getSource("draw-polygon").setData({ type: "FeatureCollection", features: features });
-    }
-    var pointFeatures = drawPoints.map(function (p) {
-        return { type: "Feature", geometry: { type: "Point", coordinates: p }, properties: {} };
-    });
-    if (map.getSource("draw-points")) {
-        map.getSource("draw-points").setData({ type: "FeatureCollection", features: pointFeatures });
-    }
 }
 
 map.on("load", function () {
     map.addSource("draw-polygon", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addSource("draw-points", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "draw-fill", type: "fill", source: "draw-polygon", paint: { "fill-color": "rgba(100,140,255,0.15)", "fill-opacity": 1 } });
-    map.addLayer({ id: "draw-line", type: "line", source: "draw-polygon", paint: { "line-color": "rgba(100,140,255,0.8)", "line-width": 2, "line-dasharray": [3, 2] } });
-    map.addLayer({ id: "draw-vertices", type: "circle", source: "draw-points", paint: { "circle-radius": 4, "circle-color": "rgba(100,140,255,1)", "circle-stroke-color": "white", "circle-stroke-width": 1.5 } });
+    map.addSource("draw-inprogress", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+
+    map.addLayer({
+        id: "draw-fill", type: "fill", source: "draw-polygon",
+        paint: {
+            "fill-color": FILL_COLOR_EXPR,
+            "fill-opacity": ["case", ["==", ["get", "selected"], true], DRAW_FILL_OPACITY_SELECTED, DRAW_FILL_OPACITY],
+        },
+    });
+    map.addLayer({
+        id: "draw-line", type: "line", source: "draw-polygon",
+        paint: {
+            "line-color": LINE_COLOR_EXPR,
+            "line-width": ["case", ["==", ["get", "selected"], true], 3, 2],
+        },
+    });
+
+    map.addLayer({
+        id: "draw-inprogress-fill", type: "fill", source: "draw-inprogress",
+        paint: { "fill-color": "rgba(100,140,255,0.15)", "fill-opacity": 1 },
+    });
+    map.addLayer({
+        id: "draw-inprogress-line", type: "line", source: "draw-inprogress",
+        paint: { "line-color": "rgba(100,140,255,0.9)", "line-width": 2, "line-dasharray": [3, 2] },
+    });
+
+    map.addLayer({
+        id: "draw-vertices", type: "circle", source: "draw-points",
+        paint: { "circle-radius": 4, "circle-color": "rgba(100,140,255,1)", "circle-stroke-color": "white", "circle-stroke-width": 1.5 },
+    });
 });
 
 function segmentsIntersect(a1, a2, b1, b2) {
@@ -317,16 +587,8 @@ map.on("click", function (e) {
         return;
     }
     drawPoints.push(pt);
-    updateDrawLayer();
-    if (drawPoints.length >= 3) {
-        var coords = drawPoints.slice();
-        coords.push(coords[0]);
-        var geom = { type: "Polygon", coordinates: [coords] };
-        currentGeometry = JSON.stringify(geom);
-        var input = document.getElementById("opt-geometry");
-        input.value = currentGeometry;
-        input.scrollLeft = input.scrollWidth;
-    }
+    syncInProgress();
+    _updatePolygonBtnState();
 });
 
 map.on("dblclick", function (e) {
@@ -338,6 +600,38 @@ map.on("dblclick", function (e) {
         return;
     }
     finishDrawing();
+});
+
+// ── Feature selection on map click ────────────────────
+
+map.on("click", "draw-fill", function (e) {
+    if (drawingMode || rectMode || draggingVertex >= 0) return;
+    if (!e.features || !e.features.length) return;
+    var f = e.features[0];
+    var id = f.properties && f.properties.id;
+    if (id && id !== selectedFeatureId) {
+        selectFeature(id);
+    }
+});
+
+// Click on empty map area deselects (but not when rectangle/draw is active or
+// when the click landed on an editable feature). Run after the layer-scoped
+// click above so layer hits are handled first.
+map.on("click", function (e) {
+    if (drawingMode || rectMode || draggingVertex >= 0) return;
+    if (!selectedFeatureId) return;
+    var hit = map.queryRenderedFeatures(e.point, { layers: ["draw-fill"] });
+    if (!hit.length) deselectFeature();
+});
+
+// Delete/Backspace removes the currently selected feature.
+document.addEventListener("keydown", function (e) {
+    if (!selectedFeatureId) return;
+    if (e.key !== "Delete" && e.key !== "Backspace") return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    e.preventDefault();
+    removeFeature(selectedFeatureId);
 });
 
 // ── Vertex editing (drag to move) ─────────────────────
@@ -363,7 +657,8 @@ function nearestVertex(point) {
 }
 
 map.on("mousedown", function (e) {
-    if (drawingMode || rectMode || drawPoints.length < 3) return;
+    if (drawingMode || rectMode) return;
+    if (!selectedFeatureId || drawPoints.length < 3) return;
     var idx = nearestVertex(e.point);
     if (idx < 0) return;
     draggingVertex = idx;
@@ -382,14 +677,8 @@ map.on("mousemove", function (e) {
         drawPoints[draggingVertex] = oldPos;
         return;
     }
-    updateDrawLayer();
-    if (drawPoints.length >= 3) {
-        var coords = drawPoints.slice();
-        coords.push(coords[0]);
-        var geom = { type: "Polygon", coordinates: [coords] };
-        currentGeometry = JSON.stringify(geom);
-        document.getElementById("opt-geometry").value = currentGeometry;
-    }
+    syncSelectedVertices();
+    commitSelectedFromDrawPoints();
 });
 
 map.on("mouseup", function (e) {
@@ -397,21 +686,13 @@ map.on("mouseup", function (e) {
     draggingVertex = -1;
     map.dragPan.enable();
     map.getCanvas().style.setProperty("cursor", "", "");
-    // Update geometry input
-    if (drawPoints.length >= 3) {
-        var coords = drawPoints.slice();
-        coords.push(coords[0]);
-        var geom = { type: "Polygon", coordinates: [coords] };
-        currentGeometry = JSON.stringify(geom);
-        var input = document.getElementById("opt-geometry");
-        input.value = currentGeometry;
-        input.scrollLeft = input.scrollWidth;
-    }
+    commitSelectedFromDrawPoints();
 });
 
 // Show grab cursor on vertex hover
 map.on("mousemove", function (e) {
-    if (drawingMode || rectMode || draggingVertex >= 0 || drawPoints.length < 3) return;
+    if (drawingMode || rectMode || draggingVertex >= 0) return;
+    if (!selectedFeatureId || drawPoints.length < 3) return;
     if (nearestVertex(e.point) >= 0) {
         map.getCanvas().style.setProperty("cursor", "grab", "important");
     } else {
@@ -1391,14 +1672,15 @@ map.on("click", function () {
 
 // Pointer cursor on hoverable layers
 map.on("mousemove", function (e) {
-    var layers = ["remote-fill"];
+    if (drawingMode || rectMode) return;
+    // Vertex-drag handlers manage their own grab/grabbing cursors.
+    if (selectedFeatureId && drawPoints.length >= 3 && nearestVertex(e.point) >= 0) return;
+    var layers = ["remote-fill", "draw-fill"];
     trackedCategories.forEach(function (cat) { layers.push("tracked-" + cat + "-fill"); });
     var existing = layers.filter(function (l) { return map.getLayer(l); });
     if (existing.length === 0) return;
     var features = map.queryRenderedFeatures(e.point, { layers: existing });
-    if (!drawingMode && !rectMode) {
-        map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
-    }
+    map.getCanvas().style.cursor = features.length > 0 ? "pointer" : "";
 });
 
 // ── Re-add sources after basemap change ──────────────
@@ -1407,9 +1689,37 @@ function readdAllSources() {
     // Re-add draw layers
     map.addSource("draw-polygon", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
     map.addSource("draw-points", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    map.addLayer({ id: "draw-fill", type: "fill", source: "draw-polygon", paint: { "fill-color": "rgba(100,140,255,0.15)", "fill-opacity": 1 } });
-    map.addLayer({ id: "draw-line", type: "line", source: "draw-polygon", paint: { "line-color": "rgba(100,140,255,0.8)", "line-width": 2, "line-dasharray": [3, 2] } });
-    map.addLayer({ id: "draw-vertices", type: "circle", source: "draw-points", paint: { "circle-radius": 4, "circle-color": "rgba(100,140,255,1)", "circle-stroke-color": "white", "circle-stroke-width": 1.5 } });
+    map.addSource("draw-inprogress", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({
+        id: "draw-fill", type: "fill", source: "draw-polygon",
+        paint: {
+            "fill-color": FILL_COLOR_EXPR,
+            "fill-opacity": ["case", ["==", ["get", "selected"], true], DRAW_FILL_OPACITY_SELECTED, DRAW_FILL_OPACITY],
+        },
+    });
+    map.addLayer({
+        id: "draw-line", type: "line", source: "draw-polygon",
+        paint: {
+            "line-color": LINE_COLOR_EXPR,
+            "line-width": ["case", ["==", ["get", "selected"], true], 3, 2],
+        },
+    });
+    map.addLayer({
+        id: "draw-inprogress-fill", type: "fill", source: "draw-inprogress",
+        paint: { "fill-color": "rgba(100,140,255,0.15)", "fill-opacity": 1 },
+    });
+    map.addLayer({
+        id: "draw-inprogress-line", type: "line", source: "draw-inprogress",
+        paint: { "line-color": "rgba(100,140,255,0.9)", "line-width": 2, "line-dasharray": [3, 2] },
+    });
+    map.addLayer({
+        id: "draw-vertices", type: "circle", source: "draw-points",
+        paint: { "circle-radius": 4, "circle-color": "rgba(100,140,255,1)", "circle-stroke-color": "white", "circle-stroke-width": 1.5 },
+    });
+
+    // Repopulate persisted collection.
+    syncCollectionToMap();
+    syncInProgress();
 
     if (remoteActive && remoteDisplayData && !remoteLoading) {
         addRemoteToMap(remoteDisplayData);

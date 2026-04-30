@@ -199,7 +199,7 @@ body {
 
 #log-pane {
     display: none;
-    height: 207px;
+    height: 211px;
     flex-shrink: 0;
     background: rgba(0, 0, 0, 0.25);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1130,45 +1130,56 @@ button:disabled {
     color: rgb(50,80,200) !important;
 }
 
-.draw-finish-btn {
-    display: none;
-    position: absolute;
-    top: 82px;
-    left: 41px;
-    padding: 4px 14px;
-    border: none;
-    border-radius: 0 14px 14px 0;
-    background: rgb(50,80,200);
-    color: white;
-    font-size: 11px;
-    font-family: var(--font-ui);
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-    transition: background 0.15s;
-    z-index: 0;
+.draw-btn.draw-btn-finish {
+    background: rgb(34,150,80) !important;
+    color: white !important;
+    font-weight: 700 !important;
 }
 
-.draw-finish-btn.visible {
-    display: block;
+.draw-btn.draw-btn-finish:hover {
+    background: rgb(28,130,68) !important;
+    transform: scale(1.05);
 }
 
-.draw-finish-btn.success {
-    animation: finish-flash 0.5s ease-out forwards;
+.draw-btn.draw-btn-cancel {
+    background: rgb(180,72,72) !important;
+    color: white !important;
+    font-weight: 700 !important;
 }
 
-@keyframes finish-flash {
-    0% { background: rgb(34,197,94); max-width: 80px; padding: 4px 14px; opacity: 1; transform: scale(1); }
-    15% { transform: scale(1.12); }
-    30% { transform: scale(1); }
-    50% { background: rgb(34,197,94); max-width: 80px; padding: 4px 14px; opacity: 1; }
-    100% { max-width: 0; padding: 4px 0; opacity: 0; overflow: hidden; }
+.draw-btn.draw-btn-cancel:hover {
+    background: rgb(160,55,55) !important;
+    transform: scale(1.05);
 }
 
-.draw-finish-btn:hover {
-    background: rgb(40,65,170);
+.draw-btn.draw-btn-success {
+    background: rgb(34,150,80) !important;
+    color: white !important;
+    animation: draw-btn-success-bg 0.7s ease-out;
 }
+
+.draw-btn.draw-btn-success svg {
+    width: 18px;
+    height: 18px;
+    overflow: visible;
+}
+
+.draw-btn.draw-btn-success svg path {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: draw-btn-success-check 0.45s ease-out 0.07s forwards;
+}
+
+@keyframes draw-btn-success-bg {
+    0%   { background: rgb(34,150,80)   !important; }
+    20%  { background: rgb(110,225,150) !important; }
+    100% { background: rgb(34,150,80)   !important; }
+}
+
+@keyframes draw-btn-success-check {
+    to { stroke-dashoffset: 0; }
+}
+
 
 .map-toolbar {
     background: white;
@@ -1800,12 +1811,12 @@ button:disabled {
 
 .tab-indicator {
     position: absolute;
-    bottom: 0;
+    bottom: 4px;
     left: 0;
     right: 100%;
     height: 2px;
     background: var(--accent);
-    border-radius: 1px 1px 0 0;
+    border-radius: 1px;
     pointer-events: none;
     transform-origin: bottom;
 }
@@ -2168,7 +2179,102 @@ button:disabled {
 
 
 #opt-geometry {
-    width: 290px;
+    width: 180px;
+}
+
+.geom-add-input {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    border: 1px solid var(--bar-input-border);
+    border-radius: 6px;
+    background: var(--bar-input-bg);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+}
+
+.geom-add-input:focus-within {
+    border-color: var(--border-focus);
+    background: rgba(0, 0, 0, 0.25);
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.15);
+}
+
+.geom-add-input #opt-geometry {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: 100% !important;
+    padding: 0 10px !important;
+}
+
+.geom-add-input #opt-geometry:focus {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.geom-add-submit {
+    width: 30px;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.15s, color 0.15s;
+}
+
+.geom-add-submit:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--bar-fg);
+}
+
+.geom-add-submit.ready {
+    background: var(--accent);
+    color: #ffffff;
+    border-left-color: rgba(255, 255, 255, 0.18);
+}
+
+.geom-add-submit.ready:hover {
+    background: var(--accent);
+    filter: brightness(1.12);
+    color: #fff;
+}
+
+.geom-add-submit svg {
+    width: 14px;
+    height: 14px;
+}
+
+.geom-add-or {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0 4px;
+    user-select: none;
+}
+
+.geom-load-btn {
+    width: auto !important;
+    padding: 0 10px 0 8px !important;
+    gap: 6px;
+}
+
+.geom-load-btn span {
+    font-size: 11px;
+    font-family: var(--font-ui);
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.geom-load-btn:hover span {
+    color: var(--bar-fg);
 }
 
 #opt-fetch-resolution {
@@ -2185,11 +2291,406 @@ button:disabled {
     text-align: center;
 }
 
-#geom-suggestions {
-    bottom: calc(100% + 4px);
-    top: auto;
-    z-index: 100000;
+
+/* ── Geometry collection: count chip + list popover ── */
+
+.commandbar-field > label > span:first-child {
+    /* keep label text intrinsic */
 }
+
+#geom-count-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    min-width: 22px;
+    padding: 0 7px;
+    margin-left: 8px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+    line-height: 1;
+    vertical-align: middle;
+    box-shadow: 0 0 0 0 rgba(99, 179, 237, 0.6);
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+
+#geom-count-chip:hover {
+    filter: brightness(1.1);
+    transform: scale(1.06);
+}
+
+#geom-count-chip.pulse {
+    animation: geom-chip-pulse 0.9s ease-out;
+}
+
+@keyframes geom-chip-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(99, 179, 237, 0.7); transform: scale(1); }
+    30%  { box-shadow: 0 0 0 8px rgba(99, 179, 237, 0.0); transform: scale(1.18); }
+    60%  { transform: scale(1); }
+    100% { box-shadow: 0 0 0 0 rgba(99, 179, 237, 0); transform: scale(1); }
+}
+
+#geom-count-chip.out {
+    animation: geom-chip-out 0.28s ease-in forwards;
+}
+
+@keyframes geom-chip-out {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.4); }
+}
+
+.commandbar-field > label {
+    display: flex;
+    align-items: center;
+    /* Reserve the chip's height so the label doesn't jump when the
+       count chip appears/disappears. */
+    min-height: 16px;
+}
+
+.geom-list-popover {
+    display: none;
+    position: fixed;
+    width: 340px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: rgba(20, 24, 32, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    z-index: 100000;
+    padding: 6px 0;
+}
+
+.geom-list-empty {
+    padding: 12px 14px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-family: var(--font-ui);
+    text-align: center;
+}
+
+.geom-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 12px 6px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: var(--font-ui);
+}
+
+.geom-list-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.geom-list-clear {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.geom-list-clear:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.geom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: var(--font-ui);
+    transition: background 0.12s;
+}
+
+.geom-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.geom-row.selected {
+    background: rgba(99, 179, 237, 0.12);
+}
+
+.geom-row.pop-in {
+    animation: geom-row-pop-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes geom-row-pop-in {
+    0%   { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.geom-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.geom-dot-drawn { background: rgba(100, 140, 255, 1); }
+.geom-dot-loaded { background: rgba(110, 200, 140, 1); }
+.geom-dot-parsed { background: rgba(180, 140, 230, 1); }
+
+.geom-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.geom-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.geom-row-rm {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.12s, background 0.12s;
+}
+
+.geom-row-rm svg {
+    width: 13px;
+    height: 13px;
+}
+
+.geom-row-rm:hover {
+    color: #ff8080;
+    background: rgba(255, 0, 0, 0.1);
+}
+
+/* ── Floating map panel (always-visible) ─────────────── */
+
+.geom-map-panel {
+    position: absolute;
+    top: 10px;
+    left: 50px;
+    width: 220px;
+    /* 35 (header) + 6 (body padding) + 4 × 29 (rows) = 157, +1 sub-pixel buffer. */
+    max-height: 158px;
+    display: flex;
+    flex-direction: column;
+    transform-origin: top left;
+    background: var(--map-overlay-bg, rgba(20, 24, 32, 0.92));
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    z-index: 2;
+    font-family: var(--font-ui);
+    overflow: hidden;
+}
+
+.geom-map-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.geom-map-panel-title {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.geom-map-panel-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 14px;
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 7px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.geom-map-panel-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.geom-map-panel-header .geom-list-clear {
+    font-size: 9px;
+    height: 22px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.geom-map-panel-header .geom-map-panel-collapse {
+    width: 22px;
+    height: 22px;
+}
+
+.geom-map-panel-header .geom-map-panel-collapse svg {
+    width: 10px;
+    height: 10px;
+}
+
+.geom-map-panel-collapse {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s, transform 0.18s;
+}
+
+.geom-map-panel-collapse svg {
+    width: 12px;
+    height: 12px;
+    transform: rotate(180deg);
+    transition: transform 0.18s;
+}
+
+.geom-map-panel.collapsed .geom-map-panel-collapse svg {
+    transform: rotate(0deg);
+}
+
+.geom-map-panel-collapse:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.geom-map-panel.collapsed {
+    max-height: none;
+}
+
+.geom-map-panel.collapsed .geom-map-panel-body {
+    display: none;
+}
+
+.geom-map-panel.collapsed .geom-map-panel-header {
+    border-bottom: none;
+}
+
+.geom-map-panel-body {
+    overflow-y: auto;
+    padding: 3px 0;
+    flex: 1;
+}
+
+.geom-map-panel-body .geom-row {
+    padding: 0 10px;
+    height: 29px;
+    font-size: 11px;
+    gap: 6px;
+}
+
+.geom-map-panel-body .geom-row-rm {
+    width: 21px;
+    height: 21px;
+}
+
+.geom-map-panel-body .geom-row-rm svg {
+    width: 11px;
+    height: 11px;
+}
+
+.geom-map-panel-body .geom-dot {
+    width: 7px;
+    height: 7px;
+}
+
+.geom-map-panel-body .geom-badge {
+    font-size: 8px;
+    padding: 1px 5px;
+}
+
+.geom-map-panel-cue {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 14px 12px 6px;
+    text-align: right;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to bottom,
+        rgba(20, 28, 42, 0) 0%,
+        rgba(20, 28, 42, 0.85) 70%,
+        rgba(20, 28, 42, 0.95) 100%);
+    opacity: 1;
+    transition: opacity 0.18s ease;
+}
+
+.geom-map-panel-cue.at-bottom {
+    opacity: 0;
+}
+
+.geom-map-panel.out {
+    animation: geom-panel-out 0.24s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes geom-panel-out {
+    0%   { opacity: 1; transform: translateX(0) scale(1); }
+    100% { opacity: 0; transform: translateX(-8px) scale(0.96); }
+}
+
 
 /* ── Status bar ──────────────────────────────────── */
 
@@ -2238,6 +2739,15 @@ button:disabled {
     font-family: var(--font-ui);
     font-size: 11px;
     color: rgba(255, 255, 255, 0.55);
+}
+
+#statusbar .status-chip-action {
+    cursor: pointer;
+    transition: color 0.12s;
+}
+
+#statusbar .status-chip-action:hover {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 #statusbar .status-brand {

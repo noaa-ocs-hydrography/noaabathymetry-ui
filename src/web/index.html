@@ -119,17 +119,31 @@
         </div>
 
         <div class="tab-panel active" id="tab-fetch" role="tabpanel">
-            <div class="commandbar-field" style="position:relative;" data-title="Geometry" data-tooltip="Define your area of interest. Draw a shape on the map, enter a geometry string (GeoJSON, WKT, or bounding box), or provide a path to a geometry file.">
-                <label>Geometry</label>
+            <div class="commandbar-field" style="position:relative;" data-title="Area of Interest" data-tooltip="Optional: Fetch updates existing tiles, with or without added geometries.&lt;br&gt;&lt;br&gt;To add new tiles, define your area of interest. Draw on the map, paste GeoJSON, WKT, or BBOX, or load a file. Fetch uses all added geometries.">
+                <label>
+                    <span>Area of Interest</span>
+                    <button type="button" id="geom-count-chip" class="geom-count-chip" onclick="toggleGeomList(event)" style="display:none">0</button>
+                </label>
                 <div class="input-wrap">
-                    <input type="text" id="opt-geometry" placeholder="GeoJSON/WKT/BBOX, file path, or draw" oninput="onGeomInput()" autocomplete="off">
-                    <button class="browse-btn" onclick="browseGeometry()" title="Browse for geometry file">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1"/><path d="M3 9h18l-2 9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/></svg>
+                    <button class="browse-btn geom-load-btn" onclick="startDrawing()" title="Draw a polygon (use the toolbar for rectangle)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12,3 21,9.3 17.3,20 6.7,20 3,9.3"/></svg>
+                        <span>Draw</span>
                     </button>
+                    <span class="geom-add-or">or</span>
+                    <button class="browse-btn geom-load-btn" onclick="browseGeometry()" title="Load geometry file (.geojson, .shp, .gpkg, .kml)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><polyline points="14 3 14 8 19 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+                        <span>File</span>
+                    </button>
+                    <span class="geom-add-or">or</span>
+                    <div class="geom-add-input">
+                        <input type="text" id="opt-geometry" placeholder="GeoJSON, WKT, or BBOX" autocomplete="off">
+                        <button class="geom-add-submit" id="geom-add-btn" onclick="addGeomFromBuffer()" title="Add to map">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        </button>
+                    </div>
                 </div>
-                <div id="geom-suggestions" class="suggestions"></div>
             </div>
-            <div class="commandbar-field" data-title="Only Resolution(s)" data-tooltip="Fetch only tiles matching these resolutions in meters. Leave blank to fetch all resolutions. Accepts comma separated values e.g. 4,8.">
+            <div class="commandbar-field" data-title="Only Resolution(s)" data-tooltip="Optional: leave blank to fetch all resolutions.&lt;br&gt;&lt;br&gt;Fetch only tiles matching these resolutions in meters. Accepts comma separated values e.g. 4,8.">
                 <label>Only Resolution(s)</label>
                 <input type="text" id="opt-fetch-resolution" placeholder="e.g. 4,8 (meters)">
             </div>
@@ -140,11 +154,11 @@
                 <span class="switch" id="opt-hillshade"><span class="switch-knob"></span></span>
                 <span>Hillshade</span>
             </label>
-            <div class="commandbar-field" data-title="Resolution" data-tooltip="Auto selects the finest resolution among your downloaded tiles. Enter a value in meters to override.">
+            <div class="commandbar-field" data-title="Resolution" data-tooltip="Optional: leave blank to set the mosaic resolution to the finest among your downloaded tiles.&lt;br&gt;&lt;br&gt;Enter a value in meters to override.">
                 <label>Resolution</label>
                 <input type="text" id="opt-resolution" placeholder="auto" inputmode="numeric">
             </div>
-            <div class="commandbar-field" data-title="Workers" data-tooltip="Build UTM zones in parallel. One worker per zone. Additional workers beyond your zone count have no effect. Each worker adds to memory usage, so consider your system resources.">
+            <div class="commandbar-field" data-title="Workers" data-tooltip="Optional: leave blank to use a single worker.&lt;br&gt;&lt;br&gt;Each worker builds one UTM zone in parallel. Additional workers beyond your zone count have no effect. More workers use more memory, so consider your system resources.">
                 <label>Workers</label>
                 <input type="text" id="opt-workers" placeholder="auto" inputmode="numeric" maxlength="2">
             </div>
@@ -171,6 +185,8 @@
             <span class="status-divider" id="status-last-divider" hidden></span>
             <span class="status-chip" id="status-tile-count" hidden></span>
             <span class="status-divider" id="status-tile-divider" hidden></span>
+            <span class="status-chip status-chip-action" id="status-geom-count" hidden onclick="toggleGeomList(event)"></span>
+            <span class="status-divider" id="status-geom-divider" hidden></span>
             <span class="status-coords" id="bar-coords"></span>
             <span class="status-divider"></span>
             <span class="status-brand">NOAA · NBS</span>
@@ -179,9 +195,11 @@
 
     <div id="toast-container"></div>
     <div id="field-tooltip"></div>
+    <div id="geom-list-popover" class="geom-list-popover"></div>
 
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <script src="/static/bridge-ws.js"></script>
+    <script src="/static/geom-parsers.js"></script>
     <script src="/static/map.js"></script>
     <script src="/static/panels.js"></script>
 </body>

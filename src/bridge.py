@@ -11,12 +11,13 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import threading
 import time
 import uuid
 from pathlib import Path
 
-from osgeo import gdal
+from osgeo import gdal, ogr, osr
 
 from nbs.noaabathymetry import fetch_tiles, mosaic_tiles
 from nbs.noaabathymetry.library import (
@@ -104,6 +105,11 @@ def _save_recents(recents):
         _RECENTS_FILE.write_text(json.dumps(recents[:_MAX_RECENTS]))
     except Exception:
         pass
+
+
+def _mk_temp_geojson():
+    """Create an empty temp .geojson and return ``(fd, path)``."""
+    return tempfile.mkstemp(suffix=".geojson", prefix="nbsui_geom_")
 
 
 def _add_recent(path, data_source=None):
@@ -352,12 +358,49 @@ class Bridge:
                 res_filter = [float(r.strip()) for r in resolution_filter.split(",") if r.strip()]
             except ValueError:
                 res_filter = None
-        self._run_in_thread(lambda: fetch_tiles(
-            project_dir=project_dir,
-            geometry=geometry,
-            data_source=data_source,
-            tile_resolution_filter=res_filter or None,
-        ), project_dir=project_dir, data_source=data_source)
+
+        # The UI submits a GeoJSON FeatureCollection when the user has multiple
+        # geometries on the map. The upstream parser only accepts single
+        # Geometry/Feature/BBOX/WKT or a file path, so spool the collection
+        # to a temp .geojson and hand off the path. OGR opens it as a single
+        # multi-feature layer and intersects each feature with the tile scheme.
+        temp_geom_path = None
+        if geometry and geometry.lstrip().startswith("{"):
+            try:
+                obj = json.loads(geometry)
+            except ValueError:
+                obj = None
+            if isinstance(obj, dict) and obj.get("type") == "FeatureCollection":
+                fd, temp_geom_path = _mk_temp_geojson()
+                try:
+                    with os.fdopen(fd, "w") as f:
+                        f.write(geometry)
+                except Exception:
+                    if temp_geom_path and os.path.exists(temp_geom_path):
+                        try:
+                            os.unlink(temp_geom_path)
+                        except OSError:
+                            pass
+                    temp_geom_path = None
+                else:
+                    geometry = temp_geom_path
+
+        def _do_fetch():
+            try:
+                return fetch_tiles(
+                    project_dir=project_dir,
+                    geometry=geometry,
+                    data_source=data_source,
+                    tile_resolution_filter=res_filter or None,
+                )
+            finally:
+                if temp_geom_path and os.path.exists(temp_geom_path):
+                    try:
+                        os.unlink(temp_geom_path)
+                    except OSError:
+                        pass
+
+        self._run_in_thread(_do_fetch, project_dir=project_dir, data_source=data_source)
 
     def mosaic(self, project_dir, data_source, options_json):
         data_source = data_source if data_source else None
@@ -479,6 +522,85 @@ class Bridge:
 
     def browse_geometry(self):
         return _browse_geometry()
+
+    def read_geometry_file(self, path):
+        """Open an OGR-readable geometry file, reproject every feature
+        to EPSG:4326, and return a JSON FeatureCollection string.
+
+        On failure, returns ``{"error": "..."}`` JSON.
+        """
+        try:
+            if not path:
+                return json.dumps({"error": "no path provided"})
+            path = os.path.expanduser(path)
+            if not os.path.exists(path):
+                return json.dumps({"error": "file not found: " + path})
+
+            ds = ogr.Open(path)
+            if ds is None:
+                return json.dumps({"error": "could not open: " + path})
+
+            target_srs = osr.SpatialReference()
+            target_srs.ImportFromEPSG(4326)
+            try:
+                target_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+            except AttributeError:
+                pass  # older GDAL
+
+            features = []
+            for layer_idx in range(ds.GetLayerCount()):
+                layer = ds.GetLayerByIndex(layer_idx)
+                if layer is None:
+                    continue
+                layer_name = layer.GetName() or ""
+                source_srs = layer.GetSpatialRef()
+                transform = None
+                if source_srs is not None:
+                    try:
+                        source_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+                    except AttributeError:
+                        pass
+                    if not source_srs.IsSame(target_srs):
+                        transform = osr.CoordinateTransformation(source_srs, target_srs)
+
+                layer.ResetReading()
+                feat_idx = 0
+                while True:
+                    feat = layer.GetNextFeature()
+                    if feat is None:
+                        break
+                    geom = feat.GetGeometryRef()
+                    if geom is None:
+                        feat_idx += 1
+                        continue
+                    geom = geom.Clone()
+                    if transform is not None:
+                        if geom.Transform(transform) != 0:
+                            feat_idx += 1
+                            continue
+                    geo_json_str = geom.ExportToJson()
+                    if not geo_json_str:
+                        feat_idx += 1
+                        continue
+                    try:
+                        geom_obj = json.loads(geo_json_str)
+                    except ValueError:
+                        feat_idx += 1
+                        continue
+                    features.append({
+                        "type": "Feature",
+                        "geometry": geom_obj,
+                        "properties": {
+                            "_layer": layer_name,
+                            "_feature_index": feat_idx,
+                        },
+                    })
+                    feat_idx += 1
+
+            ds = None
+            return json.dumps({"type": "FeatureCollection", "features": features})
+        except Exception as e:
+            return json.dumps({"error": str(e)})
 
     def complete_path(self, partial):
         partial = os.path.expanduser(partial)

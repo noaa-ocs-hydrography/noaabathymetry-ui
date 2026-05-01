@@ -15,6 +15,13 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 is_win = sys.platform == "win32"
 is_mac = sys.platform == "darwin"
 
+# Windows ships two artifacts:
+#   - "onefile" (default):   a single .exe that extracts to %TEMP%\_MEI<n> at launch
+#   - "alternate":           a folder bundle (no temp extraction) for users whose
+#                            anti-virus interferes with the onefile extract.
+# Driven by env var so CI can run pyinstaller twice in one Windows job.
+BUILD_MODE = os.environ.get("BUILD_MODE", "onefile").lower()
+
 env = Path(sys.prefix)
 src_dir = Path("src")
 web_dir = src_dir / "web"
@@ -212,17 +219,39 @@ if is_win:
         text_pos=None,
     )
 
-    # Windows: single .exe
-    exe = EXE(
-        pyz, a.scripts, splash, a.binaries, a.datas, splash.binaries, [],
-        name="noaabathymetry",
-        debug=False,
-        strip=False,
-        upx=False,
-        onefile=True,
-        console=False,
-        icon=exe_icon,
-    )
+    if BUILD_MODE == "alternate":
+        # Folder bundle (no %TEMP% extraction at launch). Inner exe is named
+        # `noaabathymetry.exe` so users see the same launcher they expect.
+        # Splash still useful — Python startup (GDAL init, aiohttp boot,
+        # browser launch) takes a few seconds even without onefile extraction.
+        exe = EXE(
+            pyz, a.scripts, splash, [],
+            exclude_binaries=True,
+            name="noaabathymetry",
+            debug=False,
+            strip=False,
+            upx=False,
+            console=False,
+            icon=exe_icon,
+        )
+        coll = COLLECT(
+            exe, a.binaries, a.datas, splash.binaries,
+            strip=False,
+            upx=False,
+            name="noaabathymetry-Alternate",
+        )
+    else:
+        # Onefile: single .exe that extracts to %TEMP%\_MEI<n> at launch.
+        exe = EXE(
+            pyz, a.scripts, splash, a.binaries, a.datas, splash.binaries, [],
+            name="noaabathymetry",
+            debug=False,
+            strip=False,
+            upx=False,
+            onefile=True,
+            console=False,
+            icon=exe_icon,
+        )
 else:
     # macOS: .app bundle
     exe = EXE(

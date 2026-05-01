@@ -58,8 +58,14 @@ jobs:
           pip install pillow==12.2.0
           python assets/generate_icon.py iconset
 
-      - name: Build with PyInstaller
+      - name: Build with PyInstaller (default — onefile on Windows, .app on macOS)
         run: pyinstaller noaabathymetry_ui.spec
+
+      - name: Build with PyInstaller (Windows alternate — folder bundle)
+        if: runner.os == 'Windows'
+        run: pyinstaller --noconfirm noaabathymetry_ui.spec
+        env:
+          BUILD_MODE: alternate
 
       - name: Compute checksums
         run: |
@@ -68,6 +74,8 @@ jobs:
             cd .. && shasum -a 256 "noaabathymetry-${{ matrix.name }}.zip" > "noaabathymetry-${{ matrix.name }}.zip.sha256"
           else
             shasum -a 256 "dist/noaabathymetry.exe" > "dist/noaabathymetry.exe.sha256"
+            powershell -Command "Compress-Archive -Path 'dist/noaabathymetry-Alternate' -DestinationPath 'noaabathymetry-Alternate.zip' -Force"
+            shasum -a 256 "noaabathymetry-Alternate.zip" > "noaabathymetry-Alternate.zip.sha256"
           fi
 
       - name: Upload macOS
@@ -87,6 +95,8 @@ jobs:
           path: |
             dist/noaabathymetry.exe
             dist/noaabathymetry.exe.sha256
+            noaabathymetry-Alternate.zip
+            noaabathymetry-Alternate.zip.sha256
 
   release:
     needs: build
@@ -109,4 +119,6 @@ jobs:
             artifacts/noaabathymetry-macOS-ARM/noaabathymetry-macOS-ARM.zip.sha256
             artifacts/noaabathymetry-Windows/noaabathymetry.exe
             artifacts/noaabathymetry-Windows/noaabathymetry.exe.sha256
+            artifacts/noaabathymetry-Windows/noaabathymetry-Alternate.zip
+            artifacts/noaabathymetry-Windows/noaabathymetry-Alternate.zip.sha256
           generate_release_notes: true

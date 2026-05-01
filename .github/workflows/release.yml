@@ -74,8 +74,8 @@ jobs:
             cd .. && shasum -a 256 "noaabathymetry-${{ matrix.name }}.zip" > "noaabathymetry-${{ matrix.name }}.zip.sha256"
           else
             shasum -a 256 "dist/noaabathymetry.exe" > "dist/noaabathymetry.exe.sha256"
-            powershell -Command "Compress-Archive -Path 'dist/noaabathymetry-Alternate' -DestinationPath 'noaabathymetry-Alternate.zip' -Force"
-            shasum -a 256 "noaabathymetry-Alternate.zip" > "noaabathymetry-Alternate.zip.sha256"
+            powershell -Command "Compress-Archive -Path 'dist/noaabathymetry-Alternate' -DestinationPath 'dist/noaabathymetry-Alternate.zip' -Force"
+            shasum -a 256 "dist/noaabathymetry-Alternate.zip" > "dist/noaabathymetry-Alternate.zip.sha256"
           fi
 
       - name: Upload macOS
@@ -95,8 +95,8 @@ jobs:
           path: |
             dist/noaabathymetry.exe
             dist/noaabathymetry.exe.sha256
-            noaabathymetry-Alternate.zip
-            noaabathymetry-Alternate.zip.sha256
+            dist/noaabathymetry-Alternate.zip
+            dist/noaabathymetry-Alternate.zip.sha256
 
   release:
     needs: build

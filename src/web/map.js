@@ -1,10 +1,17 @@
 // MapLibre map with draw tools for AOI selection.
 
 // ── Basemaps ─────────────────────────────────────────
+var osmAttribution =
+    '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
 
 var cartoAttribution = '© <a href="https://carto.com/" target="_blank">CARTO</a>, © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
 
 var basemapStyles = {
+    "OpenStreetMap": {
+        version: 8,
+        sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: osmAttribution } },
+        layers: [{ id: "osm", type: "raster", source: "osm" }]
+    },
     "Voyager": {
         version: 8,
         sources: { carto: { type: "raster", tiles: ["https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png", "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"], tileSize: 256, attribution: cartoAttribution } },
@@ -27,7 +34,7 @@ var basemapIndex = 0;
 
 var map = new maplibregl.Map({
     container: "map",
-    style: basemapStyles["Voyager"],
+    style: basemapStyles["OpenStreetMap"],
     center: [-80, 30],
     zoom: 4,
     attributionControl: false,
